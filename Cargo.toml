@@ -1,0 +1,17 @@
+[package]
+name = "tracing-fmt-glog"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tracing-core = "0.1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["std", "fmt", "registry"] }
+chrono = { version = "0.4", features = ["clock", "serde", "std"], default-features = false }
+nix = "0.23"
+ansi_term = "0.12"
+
+[dev-dependencies]
+thiserror = "1"
