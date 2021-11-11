@@ -1,13 +1,18 @@
-// use ansi_term::{Colour, Style};
+mod format;
+
+use ansi_term::Style;
 use chrono::Utc;
+use format::FmtLevel;
 use std::fmt::{self, Write};
-use tracing::{Level, Subscriber};
+use tracing::Subscriber;
 use tracing_core::field::Visit;
 use tracing_subscriber::{
     field::{RecordFields, VisitOutput},
     fmt::{format::Writer, FmtContext, FormatEvent, FormatFields, FormattedFields},
     registry::LookupSpan,
 };
+
+use crate::format::{FormatProcessData, FormatSpanFields, FormatTimestamp};
 
 pub struct GlogEventFormatter;
 
@@ -24,40 +29,42 @@ where
     ) -> fmt::Result {
         let level = *event.metadata().level();
 
-        // Convert log level to a single character representation.
-        let level = match level {
-            Level::ERROR => "E",
-            Level::WARN => "W",
-            Level::INFO => "I",
-            Level::DEBUG => "D",
-            Level::TRACE => "T",
-        };
+        // Convert log level to a single character representation.)
+        #[cfg(feature = "ansi")]
+        let level = FmtLevel::format_level(level, writer.has_ansi_escapes());
+        #[cfg(not(feature = "ansi"))]
+        let level = FmtLevel::format_level(level);
 
         write!(writer, "{}", level)?;
 
         // write the timestamp:
         let now = Utc::now();
-        write!(writer, "{} ", now.format("%m%d %H:%M:%S%.6f"))?;
+        #[cfg(feature = "ansi")]
+        let time = FormatTimestamp::format_time(now, writer.has_ansi_escapes());
+        #[cfg(not(feature = "ansi"))]
+        let time = FormatTimestamp::format_time(now);
+        write!(writer, "{} ", time)?;
 
         // get some process information
         let pid = get_pid();
-        let thread_name = std::thread::current()
-            .name()
-            .map(|s| format!("[{}]", s))
-            .unwrap_or_else(|| String::from(""));
+        let thread = std::thread::current();
+        let thread_name = thread.name();
 
-        let file = event.metadata().file().unwrap_or_else(|| "");
-        let line = event.metadata().line().unwrap();
-
-        write!(
-            writer,
-            "{pid:>5} {thread_name} [{target}] {file}:{line}] ",
-            pid = pid,
-            thread_name = thread_name,
-            target = event.metadata().target(),
-            file = file,
-            line = line
-        )?;
+        #[cfg(feature = "ansi")]
+        let data = FormatProcessData::format_process_data(
+            pid,
+            thread_name,
+            event.metadata(),
+            writer.has_ansi_escapes(),
+        );
+        #[cfg(not(feature = "ansi"))]
+        let data = FormatProcessData::format_process_data(
+            pid,
+            thread_name,
+            event.metadata(),
+            writer.has_ansi_escapes(),
+        );
+        write!(writer, "{}] ", data)?;
 
         // now, we're printing the span context into brackets of `[]`, which glog parsers ignore.
         let leaf = ctx.lookup_current();
@@ -72,17 +79,25 @@ where
                 "Unable to get the next item in the iterator; this should not be possible.",
             );
             loop {
-                write!(writer, "{}", span.name())?;
                 let ext = span.extensions();
                 let fields = &ext
                     .get::<FormattedFields<N>>()
                     .expect("will never be `None`");
 
-                if !fields.is_empty() {
-                    write!(writer, "{{{}}}", fields)?;
-                }
-                drop(ext);
+                let fields = if !fields.is_empty() {
+                    Some(fields.as_str())
+                } else {
+                    None
+                };
 
+                #[cfg(feature = "ansi")]
+                let fields =
+                    FormatSpanFields::format_fields(span.name(), fields, writer.has_ansi_escapes());
+                #[cfg(not(feature = "ansi"))]
+                let fields = FormatSpanFields::format_fields(span.name(), fields);
+                write!(writer, "{}", fields)?;
+
+                drop(ext);
                 match iter.next() {
                     // if there's more, add a space.
                     Some(next) => {
@@ -97,7 +112,6 @@ where
         }
 
         ctx.field_format().format_fields(writer.by_ref(), event)?;
-
         writeln!(writer)
     }
 }
@@ -128,6 +142,13 @@ impl<'a> Visit for GlogVisitor<'a> {
         if field.name() == "message" {
             let _ = write!(self.writer, "{:?}", value);
         } else {
+            #[cfg(feature = "ansi")]
+            {
+                let italic = Style::new().italic();
+                let _ = write!(self.writer, "{}: {:?}", italic.paint(field.name()), value);
+                return;
+            }
+            #[cfg(not(feature = "ansi"))]
             let _ = write!(self.writer, "{}: {:?}", field, value);
         }
     }
@@ -153,6 +174,6 @@ impl<'a> VisitOutput<fmt::Result> for GlogVisitor<'a> {
 }
 
 #[inline(always)]
-fn get_pid() -> i32 {
-    nix::unistd::getpid().as_raw()
+fn get_pid() -> u32 {
+    std::process::id()
 }

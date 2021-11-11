@@ -3,20 +3,21 @@ name = "tracing-fmt-glog"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["ansi"]
+ansi = ["tracing-subscriber/ansi"]
 
 [dependencies]
 tracing-core = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["std", "fmt", "registry"] }
 chrono = { version = "0.4", features = ["clock", "serde", "std"], default-features = false }
-nix = "0.23"
 ansi_term = "0.12"
 
 [dev-dependencies]
 thiserror = "1"
 
 [patch.crates-io]
-tracing-subscriber = { git = "https://github.com/tokio-rs/tracing", branch = "eliza/ansi-writer-0.1" } 
-tracing-core = { git = "https://github.com/tokio-rs/tracing", branch = "eliza/ansi-writer-0.1" } 
-tracing = { git = "https://github.com/tokio-rs/tracing", branch = "eliza/ansi-writer-0.1" } 
+tracing-subscriber = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" } 
+tracing-core = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" } 
+tracing = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" } 

@@ -1,11 +1,13 @@
 use thiserror::Error;
 use tracing::{debug, error, info, span, trace, warn, Level};
-use tracing_fmt_glog::{GlogEventFormatter, GlogFieldFormatter};
+use tracing_fmt_glog::GlogEventFormatter;
+use tracing_subscriber::fmt::format::PrettyFields;
 
 fn main() {
     tracing_subscriber::fmt()
+        .with_ansi(true)
         .event_format(GlogEventFormatter)
-        .fmt_fields(GlogFieldFormatter)
+        .fmt_fields(PrettyFields::new())
         .init();
 
     let number_of_yaks = 3;
