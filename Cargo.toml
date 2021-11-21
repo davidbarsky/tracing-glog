@@ -10,14 +10,9 @@ ansi = ["tracing-subscriber/ansi"]
 [dependencies]
 tracing-core = "0.1"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["std", "fmt", "registry"] }
+tracing-subscriber = { version = "0.3.2", features = ["std", "fmt", "registry"] }
 chrono = { version = "0.4", features = ["clock", "serde", "std"], default-features = false }
 ansi_term = "0.12"
 
 [dev-dependencies]
 thiserror = "1"
-
-[patch.crates-io]
-tracing-subscriber = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" } 
-tracing-core = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" } 
-tracing = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" } 
