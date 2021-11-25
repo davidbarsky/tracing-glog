@@ -1,3 +1,4 @@
+#[cfg(feature = "ansi")]
 use ansi_term::{Colour, Style};
 use chrono::{DateTime, Utc};
 use std::fmt;
@@ -22,7 +23,7 @@ impl FmtLevel {
     }
 
     #[cfg(not(feature = "ansi"))]
-    pub(crate) fn format_level(level: Level) -> FmtLevel<Self> {
+    pub(crate) fn format_level(level: Level) -> FmtLevel {
         FmtLevel { level }
     }
 }
@@ -65,7 +66,7 @@ impl FormatTimestamp {
     }
 
     #[cfg(not(feature = "ansi"))]
-    pub(crate) fn format_time(time: DateTime<Utc>) -> FmtLevel<Self> {
+    pub(crate) fn format_time(time: DateTime<Utc>) -> FormatTimestamp {
         FormatTimestamp { time }
     }
 }
@@ -112,7 +113,7 @@ impl<'a> FormatProcessData<'a> {
 
     #[cfg(not(feature = "ansi"))]
     pub(crate) fn format_process_data(
-        pid: i32,
+        pid: u32,
         thread_name: Option<&'a str>,
         metadata: &'static Metadata<'static>,
     ) -> Self {

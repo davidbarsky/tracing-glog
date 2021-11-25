@@ -1,22 +1,24 @@
 mod format;
 
+#[cfg(feature = "ansi")]
 use ansi_term::Style;
 use chrono::Utc;
 use format::FmtLevel;
-use std::fmt::{self, Write};
+use std::fmt;
 use tracing::Subscriber;
-use tracing_core::field::Visit;
+use tracing_core::{field::Visit, Field};
 use tracing_subscriber::{
-    field::{RecordFields, VisitOutput},
+    field::{MakeVisitor, VisitFmt, VisitOutput},
     fmt::{format::Writer, FmtContext, FormatEvent, FormatFields, FormattedFields},
     registry::LookupSpan,
 };
 
 use crate::format::{FormatProcessData, FormatSpanFields, FormatTimestamp};
 
-pub struct GlogEventFormatter;
+#[derive(Default)]
+pub struct Glog;
 
-impl<S, N> FormatEvent<S, N> for GlogEventFormatter
+impl<S, N> FormatEvent<S, N> for Glog
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
     N: for<'a> FormatFields<'a> + 'static,
@@ -58,12 +60,7 @@ where
             writer.has_ansi_escapes(),
         );
         #[cfg(not(feature = "ansi"))]
-        let data = FormatProcessData::format_process_data(
-            pid,
-            thread_name,
-            event.metadata(),
-            writer.has_ansi_escapes(),
-        );
+        let data = FormatProcessData::format_process_data(pid, thread_name, event.metadata());
         write!(writer, "{}] ", data)?;
 
         // now, we're printing the span context into brackets of `[]`, which glog parsers ignore.
@@ -116,21 +113,54 @@ where
     }
 }
 
-pub struct GlogFieldFormatter;
+#[derive(Default)]
+pub struct GlogFields;
 
-struct GlogVisitor<'a> {
-    writer: &'a mut dyn Write,
+impl<'a> MakeVisitor<Writer<'a>> for GlogFields {
+    type Visitor = GlogVisitor<'a>;
+
+    #[inline]
+    fn make_visitor(&self, target: Writer<'a>) -> Self::Visitor {
+        GlogVisitor::new(target)
+    }
+}
+
+pub struct GlogVisitor<'a> {
+    writer: Writer<'a>,
+    is_empty: bool,
+    #[cfg(feature = "ansi")]
+    style: Style,
+    result: fmt::Result,
 }
 
 impl<'a> GlogVisitor<'a> {
-    fn new(writer: &'a mut dyn Write) -> Self {
-        Self { writer }
+    fn new(writer: Writer<'a>) -> Self {
+        Self {
+            writer,
+            is_empty: true,
+            #[cfg(feature = "ansi")]
+            style: Style::new(),
+            result: Ok(()),
+        }
+    }
+
+    fn write_padded(&mut self, value: &impl fmt::Debug) {
+        let padding = if self.is_empty {
+            self.is_empty = false;
+            ""
+        } else {
+            ", "
+        };
+        self.result = write!(self.writer, "{}{:?}", padding, value);
     }
 }
 
 impl<'a> Visit for GlogVisitor<'a> {
-    fn record_str(&mut self, field: &tracing_core::Field, value: &str) {
-        // special-case the "message" field to elide the "message" key.
+    fn record_str(&mut self, field: &Field, value: &str) {
+        if self.result.is_err() {
+            return;
+        }
+
         if field.name() == "message" {
             self.record_debug(field, &format_args!("{}", value))
         } else {
@@ -138,38 +168,112 @@ impl<'a> Visit for GlogVisitor<'a> {
         }
     }
 
-    fn record_debug(&mut self, field: &tracing_core::Field, value: &dyn fmt::Debug) {
-        if field.name() == "message" {
-            let _ = write!(self.writer, "{:?}", value);
-        } else {
+    fn record_error(&mut self, field: &Field, value: &(dyn std::error::Error + 'static)) {
+        if let Some(source) = value.source() {
             #[cfg(feature = "ansi")]
             {
-                let italic = Style::new().italic();
-                let _ = write!(self.writer, "{}: {:?}", italic.paint(field.name()), value);
-                return;
+                let bold = Style::new().bold();
+                self.record_debug(
+                    field,
+                    &format_args!(
+                        "{}, {}{}.sources{}: {}",
+                        value,
+                        bold.prefix(),
+                        field,
+                        bold.infix(self.style),
+                        ErrorSourceList(source),
+                    ),
+                )
             }
+
             #[cfg(not(feature = "ansi"))]
-            let _ = write!(self.writer, "{}: {:?}", field, value);
+            {
+                self.record_debug(
+                    field,
+                    &format_args!("{}, {}.sources: {}", value, field, ErrorSourceList(source),),
+                )
+            }
+        } else {
+            self.record_debug(field, &format_args!("{}", value))
+        }
+    }
+
+    fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
+        if self.result.is_err() {
+            return;
+        }
+
+        if self.writer.has_ansi_escapes() {
+            let bold = Style::new().bold();
+            match field.name() {
+                "message" => {
+                    self.write_padded(&format_args!("{}{:?}", self.style.prefix(), value,))
+                }
+                // Skip fields that are actually log metadata that have already been handled
+                name if name.starts_with("log.") => self.result = Ok(()),
+                name if name.starts_with("r#") => self.write_padded(&format_args!(
+                    "{}{}{}: {:?}",
+                    bold.prefix(),
+                    &name[2..],
+                    bold.infix(self.style),
+                    value
+                )),
+                name => self.write_padded(&format_args!(
+                    "{}{}{}: {:?}",
+                    bold.prefix(),
+                    name,
+                    bold.infix(self.style),
+                    value
+                )),
+            };
+        } else {
+            match field.name() {
+                "message" => self.write_padded(&format_args!("{:?}", value,)),
+                // Skip fields that are actually log metadata that have already been handled
+                name if name.starts_with("log.") => self.result = Ok(()),
+                name if name.starts_with("r#") => {
+                    self.write_padded(&format_args!("{}: {:?}", &name[2..], value))
+                }
+                name => self.write_padded(&format_args!("{}: {:?}", name, value)),
+            };
         }
     }
 }
 
-impl<'writer> FormatFields<'writer> for GlogFieldFormatter {
-    fn format_fields<R: RecordFields>(
-        &self,
-        mut writer: Writer<'writer>,
-        fields: R,
-    ) -> fmt::Result {
-        let mut visitor = GlogVisitor::new(&mut writer);
-        fields.record(&mut visitor);
-        visitor.finish()
+#[cfg(feature = "ansi")]
+impl<'a> VisitOutput<fmt::Result> for GlogVisitor<'a> {
+    fn finish(mut self) -> fmt::Result {
+        write!(&mut self.writer, "{}", self.style.suffix())?;
+        self.result
     }
 }
 
+#[cfg(not(feature = "ansi"))]
 impl<'a> VisitOutput<fmt::Result> for GlogVisitor<'a> {
     fn finish(self) -> fmt::Result {
-        // this is a no-op for glog
+        let _ = self;
         Ok(())
+    }
+}
+
+impl<'a> VisitFmt for GlogVisitor<'a> {
+    fn writer(&mut self) -> &mut dyn fmt::Write {
+        &mut self.writer
+    }
+}
+
+/// Renders an error into a list of sources, *including* the error
+struct ErrorSourceList<'a>(&'a (dyn std::error::Error + 'static));
+
+impl<'a> fmt::Display for ErrorSourceList<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut list = f.debug_list();
+        let mut curr = Some(self.0);
+        while let Some(curr_err) = curr {
+            list.entry(&format_args!("{}", curr_err));
+            curr = curr_err.source();
+        }
+        list.finish()
     }
 }
 
