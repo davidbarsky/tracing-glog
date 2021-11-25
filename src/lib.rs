@@ -1,6 +1,5 @@
 mod format;
 
-#[cfg(feature = "ansi")]
 use ansi_term::Style;
 use chrono::Utc;
 use format::FmtLevel;
@@ -32,19 +31,12 @@ where
         let level = *event.metadata().level();
 
         // Convert log level to a single character representation.)
-        #[cfg(feature = "ansi")]
         let level = FmtLevel::format_level(level, writer.has_ansi_escapes());
-        #[cfg(not(feature = "ansi"))]
-        let level = FmtLevel::format_level(level);
-
         write!(writer, "{}", level)?;
 
         // write the timestamp:
         let now = Utc::now();
-        #[cfg(feature = "ansi")]
         let time = FormatTimestamp::format_time(now, writer.has_ansi_escapes());
-        #[cfg(not(feature = "ansi"))]
-        let time = FormatTimestamp::format_time(now);
         write!(writer, "{} ", time)?;
 
         // get some process information
@@ -52,15 +44,12 @@ where
         let thread = std::thread::current();
         let thread_name = thread.name();
 
-        #[cfg(feature = "ansi")]
         let data = FormatProcessData::format_process_data(
             pid,
             thread_name,
             event.metadata(),
             writer.has_ansi_escapes(),
         );
-        #[cfg(not(feature = "ansi"))]
-        let data = FormatProcessData::format_process_data(pid, thread_name, event.metadata());
         write!(writer, "{}] ", data)?;
 
         // now, we're printing the span context into brackets of `[]`, which glog parsers ignore.
@@ -87,11 +76,8 @@ where
                     None
                 };
 
-                #[cfg(feature = "ansi")]
                 let fields =
                     FormatSpanFields::format_fields(span.name(), fields, writer.has_ansi_escapes());
-                #[cfg(not(feature = "ansi"))]
-                let fields = FormatSpanFields::format_fields(span.name(), fields);
                 write!(writer, "{}", fields)?;
 
                 drop(ext);
@@ -128,7 +114,6 @@ impl<'a> MakeVisitor<Writer<'a>> for GlogFields {
 pub struct GlogVisitor<'a> {
     writer: Writer<'a>,
     is_empty: bool,
-    #[cfg(feature = "ansi")]
     style: Style,
     result: fmt::Result,
 }
@@ -138,7 +123,6 @@ impl<'a> GlogVisitor<'a> {
         Self {
             writer,
             is_empty: true,
-            #[cfg(feature = "ansi")]
             style: Style::new(),
             result: Ok(()),
         }
@@ -152,6 +136,14 @@ impl<'a> GlogVisitor<'a> {
             ", "
         };
         self.result = write!(self.writer, "{}{:?}", padding, value);
+    }
+
+    fn bold(&self) -> Style {
+        if self.writer.has_ansi_escapes() {
+            self.style.bold()
+        } else {
+            Style::new()
+        }
     }
 }
 
@@ -170,29 +162,10 @@ impl<'a> Visit for GlogVisitor<'a> {
 
     fn record_error(&mut self, field: &Field, value: &(dyn std::error::Error + 'static)) {
         if let Some(source) = value.source() {
-            #[cfg(feature = "ansi")]
-            {
-                let bold = Style::new().bold();
-                self.record_debug(
-                    field,
-                    &format_args!(
-                        "{}, {}{}.sources{}: {}",
-                        value,
-                        bold.prefix(),
-                        field,
-                        bold.infix(self.style),
-                        ErrorSourceList(source),
-                    ),
-                )
-            }
-
-            #[cfg(not(feature = "ansi"))]
-            {
-                self.record_debug(
-                    field,
-                    &format_args!("{}, {}.sources: {}", value, field, ErrorSourceList(source),),
-                )
-            }
+            self.record_debug(
+                field,
+                &format_args!("{}, {}.sources: {}", value, field, ErrorSourceList(source),),
+            )
         } else {
             self.record_debug(field, &format_args!("{}", value))
         }
@@ -203,56 +176,33 @@ impl<'a> Visit for GlogVisitor<'a> {
             return;
         }
 
-        if self.writer.has_ansi_escapes() {
-            let bold = Style::new().bold();
-            match field.name() {
-                "message" => {
-                    self.write_padded(&format_args!("{}{:?}", self.style.prefix(), value,))
-                }
-                // Skip fields that are actually log metadata that have already been handled
-                name if name.starts_with("log.") => self.result = Ok(()),
-                name if name.starts_with("r#") => self.write_padded(&format_args!(
-                    "{}{}{}: {:?}",
-                    bold.prefix(),
-                    &name[2..],
-                    bold.infix(self.style),
-                    value
-                )),
-                name => self.write_padded(&format_args!(
-                    "{}{}{}: {:?}",
-                    bold.prefix(),
-                    name,
-                    bold.infix(self.style),
-                    value
-                )),
-            };
-        } else {
-            match field.name() {
-                "message" => self.write_padded(&format_args!("{:?}", value,)),
-                // Skip fields that are actually log metadata that have already been handled
-                name if name.starts_with("log.") => self.result = Ok(()),
-                name if name.starts_with("r#") => {
-                    self.write_padded(&format_args!("{}: {:?}", &name[2..], value))
-                }
-                name => self.write_padded(&format_args!("{}: {:?}", name, value)),
-            };
-        }
+        let bold = self.bold();
+        match field.name() {
+            "message" => self.write_padded(&format_args!("{}{:?}", self.style.prefix(), value,)),
+            // Skip fields that are actually log metadata that have already been handled
+            name if name.starts_with("log.") => self.result = Ok(()),
+            name if name.starts_with("r#") => self.write_padded(&format_args!(
+                "{}{}{}: {:?}",
+                bold.prefix(),
+                &name[2..],
+                bold.infix(self.style),
+                value
+            )),
+            name => self.write_padded(&format_args!(
+                "{}{}{}: {:?}",
+                bold.prefix(),
+                name,
+                bold.infix(self.style),
+                value
+            )),
+        };
     }
 }
 
-#[cfg(feature = "ansi")]
 impl<'a> VisitOutput<fmt::Result> for GlogVisitor<'a> {
     fn finish(mut self) -> fmt::Result {
         write!(&mut self.writer, "{}", self.style.suffix())?;
         self.result
-    }
-}
-
-#[cfg(not(feature = "ansi"))]
-impl<'a> VisitOutput<fmt::Result> for GlogVisitor<'a> {
-    fn finish(self) -> fmt::Result {
-        let _ = self;
-        Ok(())
     }
 }
 

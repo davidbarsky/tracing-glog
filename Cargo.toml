@@ -3,27 +3,16 @@ name = "tracing-glog"
 version = "0.1.0"
 edition = "2021"
 
-[features]
-default = ["ansi"]
-ansi = ["tracing-subscriber/ansi", "ansi_term"]
-
 [dependencies]
 tracing-core = "0.1"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3.2", features = ["std", "fmt", "registry"] }
+tracing-subscriber = { version = "0.3.2", features = ["std", "fmt", "registry", "ansi"], default-features = false }
 chrono = { version = "0.4", features = ["clock", "serde", "std"], default-features = false }
-ansi_term = { version = "0.12", optional = true }
+ansi_term = { version = "0.12" }
 
 [dev-dependencies]
 thiserror = "1"
-
-[[example]]
-name = "yak-shave"
-required-features = ["ansi"]
-
-[[example]]
-name = "yak-shave-no-ansi"
-required-features = []
+structopt = "0.3"
 
 [patch.crates-io]
 tracing-core = { path = "../tracing/tracing-core"}

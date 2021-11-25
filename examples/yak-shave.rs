@@ -1,9 +1,30 @@
+use structopt::StructOpt;
 use thiserror::Error;
 use tracing::{debug, error, info, span, trace, warn, Level};
 use tracing_glog::{Glog, GlogFields};
 
+/// To run with ANSI colors, run:
+/// ```bash
+/// cargo run --example yak-shave -- --with-ansi
+/// ```
+///
+/// To run without ANSI colors, run:
+/// ```bash
+/// cargo run --example yak-shave
+/// ```
+
+#[derive(Debug, structopt::StructOpt)]
+struct Args {
+    /// Whether to run this example with or without ANSI colors.
+    #[structopt(short, long)]
+    with_ansi: bool,
+}
+
 fn main() {
+    let args = Args::from_args();
+
     tracing_subscriber::fmt()
+        .with_ansi(args.with_ansi)
         .event_format(Glog::default())
         .fmt_fields(GlogFields::default())
         .init();
@@ -16,7 +37,7 @@ fn main() {
     let number_shaved = shave_all(number_of_yaks);
     tracing::info!(
         all_yaks_shaved = number_shaved == number_of_yaks,
-        "yak shaving completed."
+        "yak shaving completed"
     );
 }
 
