@@ -5,6 +5,9 @@ edition = "2021"
 description = "a glog-inspired formatter for tracing-subscriber"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
+homepage = "https://github.com/davidbarsky/tracing-glog"
+repository = "https://github.com/davidbarsky/tracing-glog"
+documentation = "https://docs.rs/tracing-glog"
 
 [dependencies]
 tracing = { version = "0.1", default-features = false }
