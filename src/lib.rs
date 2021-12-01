@@ -1,11 +1,61 @@
+//! `tracing-glog` is a [glog]-inspired formatter for [`tracing-subscriber`].
+//!
+//! `tracing-glog` should be used with [`tracing-subscriber`], as it is a formatter
+//! that `tracing-subscriber`'s [`fmt::Subscriber`] and [`fmt::Layer`] can use to
+//! format events in a glog-inspired fashion. The `yak-shave` example produces the following output:
+//!
+//! ```
+//! I1201 00:55:23.599938 37470 main [yak_shave] examples/yak-shave.rs:34] preparing to shave yaks, number_of_yaks: 3
+//! I1201 00:55:23.600030 37470 main [yak_shave] examples/yak-shave.rs:75] [shaving_yaks{yaks: 3}] shaving yaks
+//! W1201 00:55:23.600086 37470 main [yak_shave] examples/yak-shave.rs:56] [shaving_yaks{yaks: 3}, shave{yak: 3}] could not locate yak
+//! E1201 00:55:23.600116 37470 main [yak_shave] examples/yak-shave.rs:85] [shaving_yaks{yaks: 3}] failed to shave yak, yak: 3, error: out of cash
+//! I1201 00:55:23.600140 37470 main [yak_shave] examples/yak-shave.rs:38] yak shaving completed, all_yaks_shaved: false
+//! ```
+//!
+//!
+//! ## Examples
+//!
+//! With [`fmt::Subscriber`]:
+//!
+//! ```
+//! use tracing_glog::{Glog, GlogFields};
+//!
+//! tracing_subscriber::fmt()
+//!     .event_format(Glog::default())
+//!     .fmt_fields(GlogFields::default())
+//!     .init();
+//! ```
+//!
+//! With [`fmt::Layer`]:
+//!
+//! ```
+//! use tracing_glog::{Glog, GlogFields};
+//! use tracing_subscriber::{fmt, Registry};
+//! use tracing_subscriber::prelude::*;
+//!
+//! let fmt = fmt::Layer::default()
+//!     .event_format(Glog::default())
+//!     .fmt_fields(GlogFields::default());
+//!
+//! let subscriber = Registry::default().with(fmt);
+//! tracing::subscriber::set_global_default(subscriber).expect("Unable to set global subscriber");
+//! ```
+//!
+//! [glog]: https://github.com/google/glog
+//! [`tracing-subscriber`]: https://docs.rs/tracing-subscriber
+//! [`fmt::Subscriber`]: tracing_subscriber::fmt::Subscriber
+//! [`fmt::Layer`]: tracing_subscriber::fmt::Layer
+
 mod format;
 
 use ansi_term::Style;
 use chrono::Utc;
 use format::FmtLevel;
 use std::fmt;
-use tracing::Subscriber;
-use tracing_core::{field::Visit, Field};
+use tracing::{
+    field::{Field, Visit},
+    Subscriber,
+};
 use tracing_subscriber::{
     field::{MakeVisitor, VisitFmt, VisitOutput},
     fmt::{format::Writer, FmtContext, FormatEvent, FormatFields, FormattedFields},
@@ -111,6 +161,7 @@ impl<'a> MakeVisitor<Writer<'a>> for GlogFields {
     }
 }
 
+#[doc(hidden)]
 pub struct GlogVisitor<'a> {
     writer: Writer<'a>,
     is_empty: bool,
