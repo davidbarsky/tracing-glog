@@ -48,7 +48,7 @@
 mod format;
 
 use ansi_term::Style;
-use chrono::{Utc, TimeZone};
+use chrono::{TimeZone, Utc};
 use format::FmtLevel;
 use std::fmt;
 use tracing::{
@@ -69,9 +69,7 @@ pub struct Glog<Tz: TimeZone> {
 
 impl<Tz: TimeZone> Glog<Tz> {
     pub fn new(timezone: Tz) -> Self {
-        Self {
-            timezone,
-        }
+        Self { timezone }
     }
 }
 
