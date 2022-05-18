@@ -16,10 +16,11 @@
 //! With [`fmt::Subscriber`]:
 //!
 //! ```
+//! use chrono::Local;
 //! use tracing_glog::{Glog, GlogFields};
 //!
 //! tracing_subscriber::fmt()
-//!     .event_format(Glog::default())
+//!     .event_format(Glog::new(Local))
 //!     .fmt_fields(GlogFields::default())
 //!     .init();
 //! ```
@@ -47,7 +48,7 @@
 mod format;
 
 use ansi_term::Style;
-use chrono::Utc;
+use chrono::{Utc, TimeZone};
 use format::FmtLevel;
 use std::fmt;
 use tracing::{
@@ -62,13 +63,30 @@ use tracing_subscriber::{
 
 use crate::format::{FormatProcessData, FormatSpanFields, FormatTimestamp};
 
-#[derive(Default)]
-pub struct Glog;
+pub struct Glog<Tz: TimeZone> {
+    timezone: Tz,
+}
 
-impl<S, N> FormatEvent<S, N> for Glog
+impl<Tz: TimeZone> Glog<Tz> {
+    pub fn new(timezone: Tz) -> Self {
+        Self {
+            timezone,
+        }
+    }
+}
+
+impl Default for Glog<Utc> {
+    fn default() -> Self {
+        Glog::<Utc>::new(Utc)
+    }
+}
+
+impl<S, N, Tz> FormatEvent<S, N> for Glog<Tz>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
     N: for<'a> FormatFields<'a> + 'static,
+    Tz: TimeZone,
+    Tz::Offset: fmt::Display,
 {
     fn format_event(
         &self,
@@ -83,7 +101,7 @@ where
         write!(writer, "{}", level)?;
 
         // write the timestamp:
-        let now = Utc::now();
+        let now = Utc::now().with_timezone(&self.timezone);
         let time = FormatTimestamp::format_time(now, writer.has_ansi_escapes());
         write!(writer, "{} ", time)?;
 

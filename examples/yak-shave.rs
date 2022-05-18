@@ -25,7 +25,7 @@ fn main() {
 
     tracing_subscriber::fmt()
         .with_ansi(args.with_ansi)
-        .event_format(Glog::default())
+        .event_format(Glog::new(chrono::Local))
         .fmt_fields(GlogFields::default())
         .init();
 

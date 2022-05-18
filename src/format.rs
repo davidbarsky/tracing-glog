@@ -1,5 +1,5 @@
 use ansi_term::{Colour, Style};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone};
 use std::fmt;
 use tracing::{Level, Metadata};
 
@@ -42,18 +42,21 @@ impl fmt::Display for FmtLevel {
     }
 }
 
-pub(crate) struct FormatTimestamp {
-    time: DateTime<Utc>,
+pub(crate) struct FormatTimestamp<Tz: TimeZone> {
+    time: DateTime<Tz>,
     pub ansi: bool,
 }
 
-impl FormatTimestamp {
-    pub(crate) fn format_time(time: DateTime<Utc>, ansi: bool) -> FormatTimestamp {
+impl<Tz: TimeZone> FormatTimestamp<Tz> {
+    pub(crate) fn format_time(time: DateTime<Tz>, ansi: bool) -> FormatTimestamp<Tz> {
         FormatTimestamp { time, ansi }
     }
 }
 
-impl fmt::Display for FormatTimestamp {
+impl<Tz: TimeZone> fmt::Display for FormatTimestamp<Tz>
+where
+    Tz::Offset: fmt::Display,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let time = self.time.format("%m%d %H:%M:%S%.6f");
 
