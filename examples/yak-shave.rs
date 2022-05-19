@@ -16,8 +16,12 @@ use tracing_glog::{Glog, GlogFields};
 #[derive(Debug, structopt::StructOpt)]
 struct Args {
     /// Whether to run this example with or without ANSI colors.
-    #[structopt(short, long)]
+    #[structopt(long)]
     with_ansi: bool,
+
+    /// Whether tracing-glog should include the span context.
+    #[structopt(long)]
+    with_span_context: bool,
 }
 
 fn main() {
@@ -25,7 +29,7 @@ fn main() {
 
     tracing_subscriber::fmt()
         .with_ansi(args.with_ansi)
-        .event_format(Glog::default())
+        .event_format(Glog::default().with_span_context(args.with_span_context))
         .fmt_fields(GlogFields::default())
         .init();
 
