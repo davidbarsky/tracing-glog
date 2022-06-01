@@ -48,8 +48,8 @@
 mod format;
 
 use ansi_term::Style;
-use chrono::{TimeZone, Utc};
 use format::FmtLevel;
+pub use format::{GlogLocalTime, GlogUtcTime};
 use std::fmt;
 use tracing::{
     field::{Field, Visit},
@@ -57,34 +57,40 @@ use tracing::{
 };
 use tracing_subscriber::{
     field::{MakeVisitor, VisitFmt, VisitOutput},
-    fmt::{format::Writer, FmtContext, FormatEvent, FormatFields, FormattedFields},
+    fmt::{
+        format::Writer,
+        time::{FormatTime, SystemTime},
+        FmtContext, FormatEvent, FormatFields, FormattedFields,
+    },
     registry::LookupSpan,
 };
 
-use crate::format::{FormatProcessData, FormatSpanFields, FormatTimestamp};
+use crate::format::{FormatProcessData, FormatSpanFields};
 
-pub struct Glog<Tz: TimeZone> {
-    timezone: Tz,
+pub struct Glog<T = GlogUtcTime> {
+    timer: T,
 }
 
-impl<Tz: TimeZone> Glog<Tz> {
-    pub fn new(timezone: Tz) -> Self {
-        Self { timezone }
+impl<T> Glog<T> {
+    pub fn with_timer<T2>(&mut self, timer: T2) -> Glog<T2>
+    where
+        T2: FormatTime,
+    {
+        Glog { timer }
     }
 }
 
-impl Default for Glog<Utc> {
+impl Default for Glog<SystemTime> {
     fn default() -> Self {
-        Glog::<Utc>::new(Utc)
+        Glog { timer: SystemTime }
     }
 }
 
-impl<S, N, Tz> FormatEvent<S, N> for Glog<Tz>
+impl<S, N, T> FormatEvent<S, N> for Glog<T>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
     N: for<'a> FormatFields<'a> + 'static,
-    Tz: TimeZone,
-    Tz::Offset: fmt::Display,
+    T: FormatTime,
 {
     fn format_event(
         &self,
@@ -99,9 +105,7 @@ where
         write!(writer, "{}", level)?;
 
         // write the timestamp:
-        let now = Utc::now().with_timezone(&self.timezone);
-        let time = FormatTimestamp::format_time(now, writer.has_ansi_escapes());
-        write!(writer, "{} ", time)?;
+        self.timer.format_time(&mut writer)?;
 
         // get some process information
         let pid = get_pid();
