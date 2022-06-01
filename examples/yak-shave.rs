@@ -1,7 +1,7 @@
 use structopt::StructOpt;
 use thiserror::Error;
 use tracing::{debug, error, info, span, trace, warn, Level};
-use tracing_glog::{Glog, GlogFields};
+use tracing_glog::{Glog, GlogFields, LocalTime};
 
 /// To run with ANSI colors, run:
 /// ```bash
