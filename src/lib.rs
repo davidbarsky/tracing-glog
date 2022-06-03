@@ -16,11 +16,10 @@
 //! With [`fmt::Subscriber`]:
 //!
 //! ```
-//! use chrono::Local;
 //! use tracing_glog::{Glog, GlogFields};
 //!
 //! tracing_subscriber::fmt()
-//!     .event_format(Glog::new(Local))
+//!     .event_format(Glog::default())
 //!     .fmt_fields(GlogFields::default())
 //!     .init();
 //! ```
