@@ -107,7 +107,7 @@ where
             let style = Style::new().dimmed();
             write!(writer, "{}", style.prefix())?;
             format_datetime(writer, now, &self.format)?;
-            write!(writer, "{}", style.suffix())?;
+            write!(writer, "{} ", style.suffix())?;
             return Ok(());
         }
 
