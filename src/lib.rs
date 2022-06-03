@@ -112,7 +112,7 @@ where
         let thread = std::thread::current();
         let thread_name = thread.name();
 
-        let data = FormatProcessData::new(
+        let data = FormatProcessData::format_process_data(
             pid,
             thread_name,
             event.metadata(),
