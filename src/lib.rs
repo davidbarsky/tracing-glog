@@ -43,7 +43,7 @@
 //!
 //! ```
 //! use tracing_subscriber::prelude::*;
-//! use tracing_subscriber::{fmt, Registcarry};
+//! use tracing_subscriber::{fmt, Registry};
 //! use tracing_glog::{Glog, GlogFields};
 //!
 //! let fmt = fmt::Layer::default()
@@ -58,7 +58,7 @@
 //!
 //! ```
 //! use tracing_subscriber::prelude::*;
-//! use tracing_subscriber::{fmt, Registcarry};
+//! use tracing_subscriber::{fmt, Registry};
 //! use tracing_glog::{Glog, GlogFields};
 //!
 //! let fmt = fmt::Layer::default()
