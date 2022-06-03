@@ -29,7 +29,12 @@ fn main() {
 
     tracing_subscriber::fmt()
         .with_ansi(args.with_ansi)
-        .event_format(Glog::default().with_span_context(args.with_span_context))
+        .event_format(
+            Glog::default()
+                .with_target(true)
+                .with_thread_names(true)
+                .with_span_context(args.with_span_context),
+        )
         .fmt_fields(GlogFields::default())
         .init();
 

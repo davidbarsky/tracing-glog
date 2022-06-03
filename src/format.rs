@@ -107,7 +107,7 @@ where
             let style = Style::new().dimmed();
             write!(writer, "{}", style.prefix())?;
             format_datetime(writer, now, &self.format)?;
-            write!(writer, "{} ", style.suffix())?;
+            write!(writer, "{}", style.suffix())?;
             return Ok(());
         }
 
@@ -171,7 +171,7 @@ where
             write!(writer, "{}", style.prefix())?;
             format_datetime(writer, now, &self.format)?;
             // necessary to provide space between the time and the PID
-            write!(writer, "{} ", style.suffix())?;
+            write!(writer, "{}", style.suffix())?;
             return Ok(());
         }
 
@@ -191,59 +191,56 @@ fn format_datetime(
 }
 
 pub(crate) struct FormatProcessData<'a> {
-    pid: u32,
-    thread_name: Option<&'a str>,
-    metadata: &'static Metadata<'static>,
-    pub ansi: bool,
-}
-
-impl<'a> FormatProcessData<'a> {
-    pub(crate) fn new(
-        pid: u32,
-        thread_name: Option<&'a str>,
-        metadata: &'static Metadata<'static>,
-        ansi: bool,
-    ) -> Self {
-        FormatProcessData {
-            pid,
-            thread_name,
-            metadata,
-            ansi,
-        }
-    }
+    pub(crate) pid: u32,
+    pub(crate) thread_name: Option<&'a str>,
+    pub(crate) with_thread_names: bool,
+    pub(crate) metadata: &'static Metadata<'static>,
+    pub(crate) with_target: bool,
+    pub(crate) ansi: bool,
 }
 
 impl<'a> fmt::Display for FormatProcessData<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let thread_name = self.thread_name.unwrap_or("");
+        let thread_name = self.thread_name;
         let target = self.metadata.target();
         let file = self.metadata.file().unwrap_or("");
         let line = match self.metadata.line() {
             Some(line) => format!("{}", line),
             None => String::new(),
         };
+        // write the always unstyled PID
+        write!(f, " {pid:>5}", pid = self.pid)?;
 
         if self.ansi {
             let style = Style::new().bold();
-            return write!(
-                f,
-                "{pid:>5} {thread_name} [{target}] {file}:{line}",
-                pid = self.pid,
-                thread_name = style.paint(thread_name),
-                target = style.paint(target),
-                file = style.paint(file),
-                line = style.paint(line)
-            );
+            // start by bolding all the expected data
+            write!(f, " {}", style.prefix())?;
+            if self.with_thread_names || thread_name.is_some() {
+                let thread_name = thread_name.unwrap();
+                write!(f, "{}", thread_name)?;
+            }
+
+            if self.with_target {
+                write!(f, " [{}]", target)?;
+            }
+
+            write!(f, " {file}:{line}", file = file, line = line)?;
+
+            // end bolding
+            write!(f, "{}", style.suffix())?;
+            Ok(())
         } else {
-            write!(
-                f,
-                "{pid:>5} {thread_name} [{target}] {file}:{line}",
-                pid = self.pid,
-                thread_name = thread_name,
-                target = target,
-                file = file,
-                line = line
-            )
+            if self.with_thread_names && thread_name.is_some() {
+                let thread_name = thread_name.unwrap();
+                write!(f, " {}", thread_name)?;
+            }
+
+            if self.with_target {
+                write!(f, " [{}]", target)?;
+            }
+
+            write!(f, " {file}:{line}", file = file, line = line)?;
+            Ok(())
         }
     }
 }
