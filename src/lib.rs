@@ -154,6 +154,26 @@ impl<T> Glog<T> {
         }
     }
 
+    /// Sets whether or not the span context is included. Defaults to true.
+    ///
+    /// By default, formatters building atop of [`mod@tracing_subscriber::fmt`]
+    /// will include the span context as [`fmt::Layer`] and
+    /// [`fmt::Subscriber`] assume that span context is
+    /// is valuable and the _raison d’être_ for using `tracing` and, as such, do not provide a
+    /// toggle. However, users migrating from logging systems such
+    /// as [glog](https://github.com/google/glog) or folly's [`xlog`](https://github.com/facebook/folly/blob/main/folly/logging/xlog.h)
+    /// might find the span context to be overwhelming. Therefore, this formatter-level toggle
+    /// is availible in order to provide a smoother onboarding experience to [`tracing`].
+    ///
+    /// **Notice:** This is a relatively coarse toggle. In most circumstances, usage of
+    /// `tracing-subscriber`'s [`filter_fn`] is preferred to disable spans on a more
+    /// fine-grained basis.
+    ///
+    /// [`fmt::Layer`]: tracing_subscriber::fmt::Layer
+    /// [`fmt::Subscriber`]: tracing_subscriber::fmt::Subscriber
+    /// [per-layer filtering]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/layer/index.html#per-layer-filtering
+    /// [`filter_fn`]: fn@tracing_subscriber::filter::filter_fn
+    /// [`tracing`]: mod@tracing
     pub fn with_span_context(self, with_span_context: bool) -> Glog<T> {
         Glog {
             with_span_context,

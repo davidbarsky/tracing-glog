@@ -214,10 +214,11 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
         if self.ansi {
             let style = Style::new().bold();
             // start by bolding all the expected data
-            write!(f, " {}", style.prefix())?;
-            if self.with_thread_names || thread_name.is_some() {
-                let thread_name = thread_name.unwrap();
-                write!(f, "{}", thread_name)?;
+            write!(f, "{}", style.prefix())?;
+            if let Some(name) = thread_name {
+                if self.with_thread_names {
+                    write!(f, " {}", name)?
+                }
             }
 
             if self.with_target {
@@ -230,9 +231,10 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
             write!(f, "{}", style.suffix())?;
             Ok(())
         } else {
-            if self.with_thread_names && thread_name.is_some() {
-                let thread_name = thread_name.unwrap();
-                write!(f, " {}", thread_name)?;
+            if let Some(name) = thread_name {
+                if self.with_thread_names {
+                    write!(f, " {}", name)?
+                }
             }
 
             if self.with_target {

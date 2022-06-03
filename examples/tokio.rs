@@ -15,7 +15,8 @@ async fn parent_task(subtasks: usize) -> Result<(), Error> {
     }
 
     // the returnable error would be if one of the subtasks panicked.
-    while let Ok(task) = set.join_one().await.unwrap() {
+    while let Some(task) = set.join_one().await {
+        let task = task?;
         debug!(%task, "task completed");
     }
 
@@ -30,8 +31,7 @@ async fn subtask(number: usize) -> usize {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt()
-        // .with_max_level(tracing::Level::INFO)
-        .with_ansi(false)
+        .with_ansi(true)
         .event_format(
             Glog::default()
                 .with_target(false)
