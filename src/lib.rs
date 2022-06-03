@@ -39,16 +39,58 @@
 //! tracing::subscriber::set_global_default(subscriber).expect("Unable to set global subscriber");
 //! ```
 //!
+//! With [`UtcTime`]:
+//!
+//! ```
+//! use tracing_subscriber::prelude::*;
+//! use tracing_subscriber::{fmt, Registcarry};
+//! use tracing_glog::{Glog, GlogFields};
+//!
+//! let fmt = fmt::Layer::default()
+//!     .event_format(Glog::default().with_timer(tracing_glog::UtcTime::default()))
+//!     .fmt_fields(GlogFields::default());
+//!
+//! let subscriber = Registry::default().with(fmt);
+//! tracing::subscriber::set_global_default(subscriber).expect("Unable to set global subscriber");
+//! ```
+//!
+//! With [`LocalTime`]:
+//!
+//! ```
+//! use tracing_subscriber::prelude::*;
+//! use tracing_subscriber::{fmt, Registcarry};
+//! use tracing_glog::{Glog, GlogFields};
+//!
+//! let fmt = fmt::Layer::default()
+//!     .event_format(Glog::default().with_timer(tracing_glog::LocalTime::default()))
+//!     .fmt_fields(GlogFields::default());
+//!
+//! let subscriber = Registry::default().with(fmt);
+//! tracing::subscriber::set_global_default(subscriber).expect("Unable to set global subscriber");
+//! ```
+//!
+//! <div class="example-wrap" style="display:inline-block">
+//! <pre class="compile_fail" style="white-space:normal;font:inherit;">
+//!     <strong>Warning</strong>: The <a href = "https://docs.rs/time/0.3/time/"><code>time</code>
+//!     crate</a> must be compiled with <code>--cfg unsound_local_offset</code> in order to use
+//!     `LocalTime`. When this cfg is not enabled, local timestamps cannot be recorded, and
+//!     no events will be emitted.
+//!
+//!    See the <a href="https://docs.rs/time/0.3.9/time/#feature-flags"><code>time</code>
+//!    documentation</a> for more details.
+//! </pre></div>
+//!
 //! [glog]: https://github.com/google/glog
 //! [`tracing-subscriber`]: https://docs.rs/tracing-subscriber
 //! [`fmt::Subscriber`]: tracing_subscriber::fmt::Subscriber
 //! [`fmt::Layer`]: tracing_subscriber::fmt::Layer
+//! [`timer`]: tracing_subscriber::fmt::time
 
 mod format;
 
 use ansi_term::Style;
 use format::FmtLevel;
-pub use format::{GlogLocalTime, GlogUtcTime};
+pub use format::{LocalTime, UtcTime};
 use std::fmt;
 use tracing::{
     field::{Field, Visit},
@@ -64,11 +106,20 @@ use tracing_subscriber::{
 
 use crate::format::{FormatProcessData, FormatSpanFields};
 
-pub struct Glog<T = GlogLocalTime> {
+/// A [glog]-inspired span and event formatter.
+///
+/// [glog]: https://github.com/google/glog
+pub struct Glog<T = UtcTime> {
     timer: T,
 }
 
 impl<T> Glog<T> {
+    /// Use the given [timer] for span and event time stamps.
+    ///
+    /// `tracing-glog` provides two timers: [`LocalTime`] and [`UtcTime`].
+    /// [`UtcTime`] is the default timer.
+    ///
+    /// [timer]: tracing_subscriber::fmt::time::FormatTime
     pub fn with_timer<T2>(&mut self, timer: T2) -> Glog<T2>
     where
         T2: FormatTime,
@@ -77,10 +128,10 @@ impl<T> Glog<T> {
     }
 }
 
-impl Default for Glog<GlogLocalTime> {
+impl Default for Glog<UtcTime> {
     fn default() -> Self {
         Glog {
-            timer: GlogLocalTime::default(),
+            timer: UtcTime::default(),
         }
     }
 }

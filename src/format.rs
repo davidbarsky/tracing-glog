@@ -85,18 +85,18 @@ impl fmt::Display for FmtLevel {
 
 /// Formats the current [UTC time] using a [formatter] from the [`time` crate].
 ///
-/// To format the current [local time] instead, use the [`GlogLocalTime`] type.
+/// To format the current [local time] instead, use the [`LocalTime`] type.
 ///
 /// [UTC time]: time::OffsetDateTime::now_utc
 /// [formatter]: time::formatting::Formattable
 /// [`time` crate]: time
 /// [local time]: time::OffsetDateTime::now_local
 #[derive(Clone, Debug)]
-pub struct GlogUtcTime<F = Vec<FormatItem<'static>>> {
+pub struct UtcTime<F = Vec<FormatItem<'static>>> {
     format: F,
 }
 
-impl<F> FormatTime for GlogUtcTime<F>
+impl<F> FormatTime for UtcTime<F>
 where
     F: Formattable,
 {
@@ -115,7 +115,7 @@ where
     }
 }
 
-impl Default for GlogUtcTime {
+impl Default for UtcTime {
     fn default() -> Self {
         let format: Vec<FormatItem> = time::format_description::parse(
             "[month][day] [hour]:[minute]:[second].[subsecond digits:6]",
@@ -127,7 +127,7 @@ impl Default for GlogUtcTime {
 
 /// Formats the current [local time] using a [formatter] from the [`time` crate].
 ///
-/// To format the current [UTC time] instead, use the [`GlogUtcTime`] type.
+/// To format the current [UTC time] instead, use the [`UtcTime`] type.
 ///
 /// <div class="example-wrap" style="display:inline-block">
 /// <pre class="compile_fail" style="white-space:normal;font:inherit;">
@@ -145,11 +145,11 @@ impl Default for GlogUtcTime {
 /// [`time` crate]: time
 /// [UTC time]: time::OffsetDateTime::now_utc
 #[derive(Clone, Debug)]
-pub struct GlogLocalTime<F = Vec<FormatItem<'static>>> {
+pub struct LocalTime<F = Vec<FormatItem<'static>>> {
     format: F,
 }
 
-impl Default for GlogLocalTime {
+impl Default for LocalTime {
     fn default() -> Self {
         let format: Vec<FormatItem> = time::format_description::parse(
             "[month][day] [hour]:[minute]:[second].[subsecond digits:6]",
@@ -159,7 +159,7 @@ impl Default for GlogLocalTime {
     }
 }
 
-impl<F> FormatTime for GlogLocalTime<F>
+impl<F> FormatTime for LocalTime<F>
 where
     F: Formattable,
 {
