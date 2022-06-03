@@ -1,7 +1,7 @@
 use anyhow::Error;
 use tokio::task::JoinSet;
 use tracing::{debug, info, instrument, span, Instrument as _, Level};
-use tracing_glog::{Glog, GlogFields, GlogUtcTime};
+use tracing_glog::{Glog, GlogFields, UtcTime};
 
 #[instrument]
 async fn parent_task(subtasks: usize) -> Result<(), Error> {
@@ -15,7 +15,7 @@ async fn parent_task(subtasks: usize) -> Result<(), Error> {
     }
 
     // the returnable error would be if one of the subtasks panicked.
-    while let Some(task) = set.join_one().await? {
+    while let Ok(task) = set.join_one().await.unwrap() {
         debug!(%task, "task completed");
     }
 
@@ -36,7 +36,7 @@ async fn main() -> Result<(), Error> {
             Glog::default()
                 .with_target(false)
                 .with_thread_names(false)
-                .with_timer(GlogUtcTime::default()),
+                .with_timer(UtcTime::default()),
         )
         .fmt_fields(GlogFields::default())
         .init();
