@@ -75,7 +75,7 @@ pub(crate) struct FormatProcessData<'a> {
 }
 
 impl<'a> FormatProcessData<'a> {
-    pub(crate) fn format_process_data(
+    pub(crate) fn new(
         pid: u32,
         thread_name: Option<&'a str>,
         metadata: &'static Metadata<'static>,
@@ -97,7 +97,7 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
         let file = self.metadata.file().unwrap_or("");
         let line = match self.metadata.line() {
             Some(line) => format!("{}", line),
-            None => format!(""),
+            None => String::new(),
         };
 
         if self.ansi {
@@ -155,7 +155,7 @@ impl<'a> fmt::Display for FormatSpanFields<'a> {
             if let Some(fields) = self.fields {
                 write!(f, "{{{}}}", italic.paint(fields))?;
             };
-            return Ok(());
+            Ok(())
         } else {
             write!(f, "{}", self.span_name)?;
             if let Some(fields) = self.fields {
