@@ -83,6 +83,15 @@ impl fmt::Display for FmtLevel {
     }
 }
 
+/// Formats the current [UTC time] using a [formatter] from the [`time` crate].
+///
+/// To format the current [local time] instead, use the [`GlogLocalTime`] type.
+///
+/// [UTC time]: time::OffsetDateTime::now_utc
+/// [formatter]: time::formatting::Formattable
+/// [`time` crate]: time
+/// [local time]: time::OffsetDateTime::now_local
+#[derive(Clone, Debug)]
 pub struct GlogUtcTime<F = Vec<FormatItem<'static>>> {
     format: F,
 }
@@ -91,14 +100,14 @@ impl<F> FormatTime for GlogUtcTime<F>
 where
     F: Formattable,
 {
-    fn format_time(&self, writer: &mut tracing_subscriber::fmt::format::Writer<'_>) -> fmt::Result {
+    fn format_time(&self, writer: &mut Writer<'_>) -> fmt::Result {
         let now = OffsetDateTime::now_utc();
 
         if writer.has_ansi_escapes() {
             let style = Style::new().dimmed();
             write!(writer, "{}", style.prefix())?;
             format_datetime(writer, now, &self.format)?;
-            write!(writer, "{}", style.suffix())?;
+            write!(writer, "{} ", style.suffix())?;
             return Ok(());
         }
 
@@ -106,8 +115,8 @@ where
     }
 }
 
-impl GlogUtcTime {
-    pub fn new() -> Self {
+impl Default for GlogUtcTime {
+    fn default() -> Self {
         let format: Vec<FormatItem> = time::format_description::parse(
             "[month][day] [hour]:[minute]:[second].[subsecond digits:6]",
         )
@@ -116,29 +125,37 @@ impl GlogUtcTime {
     }
 }
 
-impl Default for GlogUtcTime {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
+/// Formats the current [local time] using a [formatter] from the [`time` crate].
+///
+/// To format the current [UTC time] instead, use the [`GlogUtcTime`] type.
+///
+/// <div class="example-wrap" style="display:inline-block">
+/// <pre class="compile_fail" style="white-space:normal;font:inherit;">
+///     <strong>Warning</strong>: The <a href = "https://docs.rs/time/0.3/time/"><code>time</code>
+///     crate</a> must be compiled with <code>--cfg unsound_local_offset</code> in order to use
+///     local timestamps. When this cfg is not enabled, local timestamps cannot be recorded, and
+///     events will be logged without timestamps.
+///
+///    See the <a href="https://docs.rs/time/0.3.4/time/#feature-flags"><code>time</code>
+///    documentation</a> for more details.
+/// </pre></div>
+///
+/// [local time]: time::OffsetDateTime::now_local
+/// [formatter]: time::formatting::Formattable
+/// [`time` crate]: time
+/// [UTC time]: time::OffsetDateTime::now_utc
+#[derive(Clone, Debug)]
 pub struct GlogLocalTime<F = Vec<FormatItem<'static>>> {
     format: F,
 }
 
-impl GlogLocalTime {
-    pub fn new() -> Self {
+impl Default for GlogLocalTime {
+    fn default() -> Self {
         let format: Vec<FormatItem> = time::format_description::parse(
             "[month][day] [hour]:[minute]:[second].[subsecond digits:6]",
         )
         .expect("Unable to make time formatter");
         Self { format }
-    }
-}
-
-impl Default for GlogLocalTime {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -146,7 +163,7 @@ impl<F> FormatTime for GlogLocalTime<F>
 where
     F: Formattable,
 {
-    fn format_time(&self, writer: &mut tracing_subscriber::fmt::format::Writer<'_>) -> fmt::Result {
+    fn format_time(&self, writer: &mut Writer<'_>) -> fmt::Result {
         let now = OffsetDateTime::now_local().map_err(|_| fmt::Error)?;
 
         if writer.has_ansi_escapes() {
@@ -181,7 +198,9 @@ pub(crate) struct FormatProcessData<'a> {
 }
 
 impl<'a> FormatProcessData<'a> {
-    pub(crate) fn new(
+    // allowing this i disagree with clippy.
+    #[allow(clippy::self_named_constructors)]
+    pub(crate) fn format_process_data(
         pid: u32,
         thread_name: Option<&'a str>,
         metadata: &'static Metadata<'static>,

@@ -1,7 +1,7 @@
 use structopt::StructOpt;
 use thiserror::Error;
 use tracing::{debug, error, info, span, trace, warn, Level};
-use tracing_glog::{Glog, GlogFields, GlogLocalTime};
+use tracing_glog::{Glog, GlogFields};
 
 /// To run with ANSI colors, run:
 /// ```bash
@@ -25,7 +25,7 @@ fn main() {
 
     tracing_subscriber::fmt()
         .with_ansi(args.with_ansi)
-        .event_format(Glog::default().with_timer(GlogLocalTime::new()))
+        .event_format(Glog::default())
         .fmt_fields(GlogFields::default())
         .init();
 

@@ -58,16 +58,14 @@ use tracing::{
 use tracing_subscriber::{
     field::{MakeVisitor, VisitFmt, VisitOutput},
     fmt::{
-        format::Writer,
-        time::{FormatTime, SystemTime},
-        FmtContext, FormatEvent, FormatFields, FormattedFields,
+        format::Writer, time::FormatTime, FmtContext, FormatEvent, FormatFields, FormattedFields,
     },
     registry::LookupSpan,
 };
 
 use crate::format::{FormatProcessData, FormatSpanFields};
 
-pub struct Glog<T = GlogUtcTime> {
+pub struct Glog<T = GlogLocalTime> {
     timer: T,
 }
 
@@ -80,9 +78,11 @@ impl<T> Glog<T> {
     }
 }
 
-impl Default for Glog<SystemTime> {
+impl Default for Glog<GlogLocalTime> {
     fn default() -> Self {
-        Glog { timer: SystemTime }
+        Glog {
+            timer: GlogLocalTime::default(),
+        }
     }
 }
 
