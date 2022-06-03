@@ -11,8 +11,8 @@ documentation = "https://docs.rs/tracing-glog"
 
 [dependencies]
 tracing = { version = "0.1", default-features = false }
-tracing-subscriber = { version = "0.3.3", features = ["std", "fmt", "registry", "ansi"], default-features = false }
-chrono = { version = "0.4", features = ["clock", "serde", "std"], default-features = false }
+tracing-subscriber = { version = "0.3.3", features = ["std", "fmt", "registry", "ansi", "time", "local-time"], default-features = false }
+time = { version = "0.3.9", features = ["formatting"] }
 ansi_term = { version = "0.12" }
 
 [dev-dependencies]
