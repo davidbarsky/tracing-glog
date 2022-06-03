@@ -198,9 +198,7 @@ pub(crate) struct FormatProcessData<'a> {
 }
 
 impl<'a> FormatProcessData<'a> {
-    // allowing this i disagree with clippy.
-    #[allow(clippy::self_named_constructors)]
-    pub(crate) fn format_process_data(
+    pub(crate) fn new(
         pid: u32,
         thread_name: Option<&'a str>,
         metadata: &'static Metadata<'static>,

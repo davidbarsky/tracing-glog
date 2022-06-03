@@ -1,8 +1,12 @@
 //! `tracing-glog` is a [glog]-inspired formatter for [`tracing-subscriber`].
 //!
-//! `tracing-glog` should be used with [`tracing-subscriber`], as it is a formatter
-//! that `tracing-subscriber`'s [`fmt::Subscriber`] and [`fmt::Layer`] can use to
-//! format events in a glog-inspired fashion. Here's an example:
+//! `tracing-glog` is meant to be used with [`tracing-subscriber`]'s [`fmt::Subscriber`]
+//! and [`fmt::Layer`] to format events in a `glog`-inspired fashion. Similar to
+//! `tracing-subscriber`'s [`Full`] formatter, this formatter shows the span context before
+//! printing event data. Spans are displayed including their names and fields. The severity,
+//! time, PID, thread name, file, and line are also included.
+//!
+//! # Example Output
 //!
 //! <pre><font color="#26A269">I</font><font color="#8D8F8A">1201 01:13:04.724801 1025672 </font><b>main</b> [<b>yak_shave</b>] <b>examples/yak-shave.rs</b>:<b>34</b>] preparing to shave yaks, <b>number_of_yaks</b>: 3
 //! <font color="#26A269">I</font><font color="#8D8F8A">1201 01:13:04.724948 1025672 </font><b>main</b> [<b>yak_shave</b>] <b>examples/yak-shave.rs</b>:<b>75</b>] [<b>shaving_yaks</b>{<i><b>yaks</b></i>: 3}] shaving yaks
@@ -11,7 +15,7 @@
 //! <font color="#26A269">I</font><font color="#8D8F8A">1201 01:13:04.725195 1025672 </font><b>main</b> [<b>yak_shave</b>] <b>examples/yak-shave.rs</b>:<b>38</b>] yak shaving completed, <b>all_yaks_shaved</b>: false
 //! </pre>
 //!
-//! ## Examples
+//! # Usage
 //!
 //! With [`fmt::Subscriber`]:
 //!
@@ -84,8 +88,9 @@
 //! [`tracing-subscriber`]: https://docs.rs/tracing-subscriber
 //! [`fmt::Subscriber`]: tracing_subscriber::fmt::Subscriber
 //! [`fmt::Layer`]: tracing_subscriber::fmt::Layer
-//! [`timer`]: tracing_subscriber::fmt::time
+//! [`Full`]: tracing_subscriber::fmt::format::Full
 
+#[deny(rustdoc::broken_intra_doc_links)]
 mod format;
 
 use ansi_term::Style;
@@ -111,6 +116,7 @@ use crate::format::{FormatProcessData, FormatSpanFields};
 /// [glog]: https://github.com/google/glog
 pub struct Glog<T = UtcTime> {
     timer: T,
+    with_span_context: bool,
 }
 
 impl<T> Glog<T> {
@@ -120,11 +126,41 @@ impl<T> Glog<T> {
     /// [`UtcTime`] is the default timer.
     ///
     /// [timer]: tracing_subscriber::fmt::time::FormatTime
-    pub fn with_timer<T2>(&mut self, timer: T2) -> Glog<T2>
+    pub fn with_timer<T2>(self, timer: T2) -> Glog<T2>
     where
         T2: FormatTime,
     {
-        Glog { timer }
+        Glog {
+            timer,
+            with_span_context: self.with_span_context,
+        }
+    }
+
+    /// Sets whether or not the span context is included. Defaults to true.
+    ///
+    /// By default, formatters building atop of [`mod@tracing_subscriber::fmt`]
+    /// will include the span context as [`fmt::Layer`] and
+    /// [`fmt::Subscriber`] assume that span context is
+    /// is valuable and the _raison d’être_ for using `tracing` and, as such, do not provide a
+    /// toggle. However, users migrating from logging systems such
+    /// as [glog](https://github.com/google/glog) or folly's [`xlog`](https://github.com/facebook/folly/blob/main/folly/logging/xlog.h)
+    /// might find the span context to be overwhelming. Therefore, this formatter-level toggle
+    /// is availible in order to provide a smoother onboarding experience to [`tracing`].
+    ///
+    /// **Notice:** This is a relatively coarse toggle. In most circumstances, usage of
+    /// `tracing-subscriber`'s [`filter_fn`] is preferred to disable spans on a more
+    /// fine-grained basis.
+    ///
+    /// [`fmt::Layer`]: tracing_subscriber::fmt::Layer
+    /// [`fmt::Subscriber`]: tracing_subscriber::fmt::Subscriber
+    /// [per-layer filtering]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/layer/index.html#per-layer-filtering
+    /// [`filter_fn`]: fn@tracing_subscriber::filter::filter_fn
+    /// [`tracing`]: mod@tracing
+    pub fn with_span_context(self, with_span_context: bool) -> Self {
+        Self {
+            with_span_context,
+            ..self
+        }
     }
 }
 
@@ -132,6 +168,7 @@ impl Default for Glog<UtcTime> {
     fn default() -> Self {
         Glog {
             timer: UtcTime::default(),
+            with_span_context: true,
         }
     }
 }
@@ -162,7 +199,7 @@ where
         let thread = std::thread::current();
         let thread_name = thread.name();
 
-        let data = FormatProcessData::format_process_data(
+        let data = FormatProcessData::new(
             pid,
             thread_name,
             event.metadata(),
@@ -170,48 +207,52 @@ where
         );
         write!(writer, "{}] ", data)?;
 
-        // now, we're printing the span context into brackets of `[]`, which glog parsers ignore.
-        let leaf = ctx.lookup_current();
+        if self.with_span_context {
+            // now, we're printing the span context into brackets of `[]`, which glog parsers ignore.
+            let leaf = ctx.lookup_current();
 
-        if let Some(leaf) = leaf {
-            // write the opening brackets
-            write!(writer, "[")?;
+            if let Some(leaf) = leaf {
+                // write the opening brackets
+                write!(writer, "[")?;
 
-            // Write spans and fields of each span
-            let mut iter = leaf.scope().from_root();
-            let mut span = iter.next().expect(
-                "Unable to get the next item in the iterator; this should not be possible.",
-            );
-            loop {
-                let ext = span.extensions();
-                let fields = &ext
-                    .get::<FormattedFields<N>>()
-                    .expect("will never be `None`");
+                // Write spans and fields of each span
+                let mut iter = leaf.scope().from_root();
+                let mut span = iter.next().expect(
+                    "Unable to get the next item in the iterator; this should not be possible.",
+                );
+                loop {
+                    let ext = span.extensions();
+                    let fields = &ext
+                        .get::<FormattedFields<N>>()
+                        .expect("will never be `None`");
 
-                let fields = if !fields.is_empty() {
-                    Some(fields.as_str())
-                } else {
-                    None
-                };
+                    let fields = if !fields.is_empty() {
+                        Some(fields.as_str())
+                    } else {
+                        None
+                    };
 
-                let fields =
-                    FormatSpanFields::format_fields(span.name(), fields, writer.has_ansi_escapes());
-                write!(writer, "{}", fields)?;
+                    let fields = FormatSpanFields::format_fields(
+                        span.name(),
+                        fields,
+                        writer.has_ansi_escapes(),
+                    );
+                    write!(writer, "{}", fields)?;
 
-                drop(ext);
-                match iter.next() {
-                    // if there's more, add a space.
-                    Some(next) => {
-                        write!(writer, ", ")?;
-                        span = next;
+                    drop(ext);
+                    match iter.next() {
+                        // if there's more, add a space.
+                        Some(next) => {
+                            write!(writer, ", ")?;
+                            span = next;
+                        }
+                        // if there's nothing there, close.
+                        None => break,
                     }
-                    // if there's nothing there, close.
-                    None => break,
                 }
+                write!(writer, "] ")?;
             }
-            write!(writer, "] ")?;
         }
-
         ctx.field_format().format_fields(writer.by_ref(), event)?;
         writeln!(writer)
     }

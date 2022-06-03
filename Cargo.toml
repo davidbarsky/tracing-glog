@@ -19,3 +19,7 @@ ansi_term = { version = "0.12" }
 thiserror = "1"
 structopt = "0.3"
 tracing = { version = "0.1" }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
