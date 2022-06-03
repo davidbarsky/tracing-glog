@@ -117,6 +117,8 @@ use crate::format::{FormatProcessData, FormatSpanFields};
 pub struct Glog<T = UtcTime> {
     timer: T,
     with_span_context: bool,
+    with_thread_names: bool,
+    with_target: bool,
 }
 
 impl<T> Glog<T> {
@@ -132,7 +134,23 @@ impl<T> Glog<T> {
     {
         Glog {
             timer,
+            with_thread_names: self.with_thread_names,
+            with_target: self.with_target,
             with_span_context: self.with_span_context,
+        }
+    }
+
+    pub fn with_thread_names(self, with_thread_names: bool) -> Glog<T> {
+        Glog {
+            with_thread_names,
+            ..self
+        }
+    }
+
+    pub fn with_target(self, with_target: bool) -> Glog<T> {
+        Glog {
+            with_target,
+            ..self
         }
     }
 
@@ -156,8 +174,8 @@ impl<T> Glog<T> {
     /// [per-layer filtering]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/layer/index.html#per-layer-filtering
     /// [`filter_fn`]: fn@tracing_subscriber::filter::filter_fn
     /// [`tracing`]: mod@tracing
-    pub fn with_span_context(self, with_span_context: bool) -> Self {
-        Self {
+    pub fn with_span_context(self, with_span_context: bool) -> Glog<T> {
+        Glog {
             with_span_context,
             ..self
         }
@@ -168,6 +186,8 @@ impl Default for Glog<UtcTime> {
     fn default() -> Self {
         Glog {
             timer: UtcTime::default(),
+            with_thread_names: false,
+            with_target: false,
             with_span_context: true,
         }
     }
@@ -199,13 +219,15 @@ where
         let thread = std::thread::current();
         let thread_name = thread.name();
 
-        let data = FormatProcessData::new(
+        let data = FormatProcessData {
             pid,
             thread_name,
-            event.metadata(),
-            writer.has_ansi_escapes(),
-        );
-        write!(writer, "{}] ", data)?;
+            with_thread_names: self.with_thread_names,
+            metadata: event.metadata(),
+            with_target: self.with_target,
+            ansi: writer.has_ansi_escapes(),
+        };
+        write!(writer, "{}]", data)?;
 
         if self.with_span_context {
             // now, we're printing the span context into brackets of `[]`, which glog parsers ignore.
