@@ -15,7 +15,7 @@ async fn parent_task(subtasks: usize) -> Result<(), Error> {
     }
 
     // the returnable error would be if one of the subtasks panicked.
-    while let Some(task) = set.join_one().await {
+    while let Some(task) = set.join_next().await {
         let task = task?;
         debug!(%task, "task completed");
     }
