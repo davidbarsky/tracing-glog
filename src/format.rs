@@ -1,4 +1,4 @@
-use ansi_term::{Colour, Style};
+use nu_ansi_term::{Color, Style};
 use std::{fmt, io};
 use time::{format_description::FormatItem, formatting::Formattable, OffsetDateTime};
 use tracing::{Level, Metadata};
@@ -16,7 +16,7 @@ pub(crate) struct WriteAdaptor<'a> {
 }
 
 impl<'a> WriteAdaptor<'a> {
-    pub(in crate) fn new(fmt_write: &'a mut dyn fmt::Write) -> Self {
+    pub(crate) fn new(fmt_write: &'a mut dyn fmt::Write) -> Self {
         Self { fmt_write }
     }
 }
@@ -65,11 +65,11 @@ impl fmt::Display for FmtLevel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.ansi {
             match self.level {
-                Level::TRACE => write!(f, "{}", Colour::Purple.paint(Self::TRACE_STR)),
-                Level::DEBUG => write!(f, "{}", Colour::Blue.paint(Self::DEBUG_STR)),
-                Level::INFO => write!(f, "{}", Colour::Green.paint(Self::INFO_STR)),
-                Level::WARN => write!(f, "{}", Colour::Yellow.paint(Self::WARN_STR)),
-                Level::ERROR => write!(f, "{}", Colour::Red.paint(Self::ERROR_STR)),
+                Level::TRACE => write!(f, "{}", Color::Purple.paint(Self::TRACE_STR)),
+                Level::DEBUG => write!(f, "{}", Color::Blue.paint(Self::DEBUG_STR)),
+                Level::INFO => write!(f, "{}", Color::Green.paint(Self::INFO_STR)),
+                Level::WARN => write!(f, "{}", Color::Yellow.paint(Self::WARN_STR)),
+                Level::ERROR => write!(f, "{}", Color::Red.paint(Self::ERROR_STR)),
             }
         } else {
             match self.level {
