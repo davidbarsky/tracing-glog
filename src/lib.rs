@@ -93,9 +93,9 @@
 #[deny(rustdoc::broken_intra_doc_links)]
 mod format;
 
-use ansi_term::Style;
 use format::FmtLevel;
 pub use format::{LocalTime, UtcTime};
+use nu_ansi_term::Style;
 use std::fmt;
 use tracing::{
     field::{Field, Visit},
