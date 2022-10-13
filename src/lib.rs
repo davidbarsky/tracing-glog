@@ -227,7 +227,7 @@ where
             with_target: self.with_target,
             ansi: writer.has_ansi_escapes(),
         };
-        write!(writer, "{}]", data)?;
+        write!(writer, "{}] ", data)?;
 
         if self.with_span_context {
             // now, we're printing the span context into brackets of `[]`, which glog parsers ignore.
