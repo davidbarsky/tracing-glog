@@ -1,4 +1,5 @@
-use nu_ansi_term::{Color, Style};
+#[cfg(feature = "ansi")]
+use crate::nu_ansi_term::{Color, Style};
 use std::{fmt, io};
 use time::{format_description::FormatItem, formatting::Formattable, OffsetDateTime};
 use tracing::{Level, Metadata};
@@ -46,6 +47,7 @@ impl<'a> fmt::Debug for WriteAdaptor<'a> {
 
 pub(crate) struct FmtLevel {
     pub level: Level,
+    #[cfg(feature = "ansi")]
     pub ansi: bool,
 }
 
@@ -56,29 +58,36 @@ impl FmtLevel {
     const WARN_STR: &'static str = "W";
     const ERROR_STR: &'static str = "E";
 
-    pub(crate) fn format_level(level: Level, ansi: bool) -> FmtLevel {
-        FmtLevel { level, ansi }
+    pub(crate) fn format_level(level: Level, _ansi: bool) -> FmtLevel {
+        #[cfg(feature = "ansi")]
+        {
+            FmtLevel { level, ansi: _ansi }
+        }
+        #[cfg(not(feature = "ansi"))]
+        {
+            FmtLevel { level }
+        }
     }
 }
 
 impl fmt::Display for FmtLevel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        #[cfg(feature = "ansi")]
         if self.ansi {
-            match self.level {
+            return match self.level {
                 Level::TRACE => write!(f, "{}", Color::Purple.paint(Self::TRACE_STR)),
                 Level::DEBUG => write!(f, "{}", Color::Blue.paint(Self::DEBUG_STR)),
                 Level::INFO => write!(f, "{}", Color::Green.paint(Self::INFO_STR)),
                 Level::WARN => write!(f, "{}", Color::Yellow.paint(Self::WARN_STR)),
                 Level::ERROR => write!(f, "{}", Color::Red.paint(Self::ERROR_STR)),
-            }
-        } else {
-            match self.level {
-                Level::TRACE => f.pad(Self::TRACE_STR),
-                Level::DEBUG => f.pad(Self::DEBUG_STR),
-                Level::INFO => f.pad(Self::INFO_STR),
-                Level::WARN => f.pad(Self::WARN_STR),
-                Level::ERROR => f.pad(Self::ERROR_STR),
-            }
+            };
+        }
+        match self.level {
+            Level::TRACE => f.pad(Self::TRACE_STR),
+            Level::DEBUG => f.pad(Self::DEBUG_STR),
+            Level::INFO => f.pad(Self::INFO_STR),
+            Level::WARN => f.pad(Self::WARN_STR),
+            Level::ERROR => f.pad(Self::ERROR_STR),
         }
     }
 }
@@ -103,6 +112,7 @@ where
     fn format_time(&self, writer: &mut Writer<'_>) -> fmt::Result {
         let now = OffsetDateTime::now_utc();
 
+        #[cfg(feature = "ansi")]
         if writer.has_ansi_escapes() {
             let style = Style::new().dimmed();
             write!(writer, "{}", style.prefix())?;
@@ -166,6 +176,7 @@ where
     fn format_time(&self, writer: &mut Writer<'_>) -> fmt::Result {
         let now = OffsetDateTime::now_local().map_err(|_| fmt::Error)?;
 
+        #[cfg(feature = "ansi")]
         if writer.has_ansi_escapes() {
             let style = Style::new().dimmed();
             write!(writer, "{}", style.prefix())?;
@@ -196,6 +207,7 @@ pub(crate) struct FormatProcessData<'a> {
     pub(crate) with_thread_names: bool,
     pub(crate) metadata: &'static Metadata<'static>,
     pub(crate) with_target: bool,
+    #[cfg(feature = "ansi")]
     pub(crate) ansi: bool,
 }
 
@@ -211,6 +223,7 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
         // write the always unstyled PID
         write!(f, " {pid:>5}", pid = self.pid)?;
 
+        #[cfg(feature = "ansi")]
         if self.ansi {
             let style = Style::new().bold();
             // start by bolding all the expected data
@@ -229,21 +242,21 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
 
             // end bolding
             write!(f, "{}", style.suffix())?;
-            Ok(())
-        } else {
-            if let Some(name) = thread_name {
-                if self.with_thread_names {
-                    write!(f, " {}", name)?
-                }
-            }
 
-            if self.with_target {
-                write!(f, " [{}]", target)?;
-            }
-
-            write!(f, " {file}:{line}", file = file, line = line)?;
-            Ok(())
+            return Ok(());
         }
+        if let Some(name) = thread_name {
+            if self.with_thread_names {
+                write!(f, " {}", name)?
+            }
+        }
+
+        if self.with_target {
+            write!(f, " [{}]", target)?;
+        }
+
+        write!(f, " {file}:{line}", file = file, line = line)?;
+        Ok(())
     }
 }
 
@@ -251,6 +264,7 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
 pub(crate) struct FormatSpanFields<'a> {
     span_name: &'static str,
     fields: Option<&'a str>,
+    #[cfg(feature = "ansi")]
     pub ansi: bool,
 }
 
@@ -258,18 +272,20 @@ impl<'a> FormatSpanFields<'a> {
     pub(crate) fn format_fields(
         span_name: &'static str,
         fields: Option<&'a str>,
-        ansi: bool,
+        _ansi: bool,
     ) -> Self {
         Self {
             span_name,
             fields,
-            ansi,
+            #[cfg(feature = "ansi")]
+            ansi: _ansi,
         }
     }
 }
 
 impl<'a> fmt::Display for FormatSpanFields<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        #[cfg(feature = "ansi")]
         if self.ansi {
             let bold = Style::new().bold();
             write!(f, "{}", bold.paint(self.span_name))?;
@@ -278,14 +294,13 @@ impl<'a> fmt::Display for FormatSpanFields<'a> {
             if let Some(fields) = self.fields {
                 write!(f, "{{{}}}", italic.paint(fields))?;
             };
-            Ok(())
-        } else {
-            write!(f, "{}", self.span_name)?;
-            if let Some(fields) = self.fields {
-                write!(f, "{{{}}}", fields)?;
-            };
-
-            Ok(())
+            return Ok(());
         }
+        write!(f, "{}", self.span_name)?;
+        if let Some(fields) = self.fields {
+            write!(f, "{{{}}}", fields)?;
+        };
+
+        Ok(())
     }
 }

@@ -13,7 +13,7 @@ documentation = "https://docs.rs/tracing-glog"
 tracing = { version = "0.1", default-features = false }
 tracing-subscriber = { version = "0.3.3", features = ["std", "fmt", "registry", "ansi", "time", "local-time"], default-features = false }
 time = { version = "0.3.9", features = ["formatting"] }
-nu-ansi-term = { version = "0.46" }
+nu-ansi-term = { version = "0.46", optional = true }
 
 [dev-dependencies]
 thiserror = "1"
@@ -21,6 +21,10 @@ anyhow = "1"
 structopt = "0.3"
 tracing = { version = "0.1" }
 tokio = { version = "1.21", features = ["full"] }
+
+[features]
+default = ["ansi"]
+ansi = ["nu-ansi-term"]
 
 [package.metadata.docs.rs]
 all-features = true
