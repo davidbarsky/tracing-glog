@@ -58,14 +58,14 @@ impl FmtLevel {
     const WARN_STR: &'static str = "W";
     const ERROR_STR: &'static str = "E";
 
-    pub(crate) fn format_level(level: Level, _ansi: bool) -> FmtLevel {
-        #[cfg(feature = "ansi")]
-        {
-            FmtLevel { level, ansi: _ansi }
-        }
+    pub(crate) fn format_level(level: Level, ansi: bool) -> FmtLevel {
         #[cfg(not(feature = "ansi"))]
-        {
-            FmtLevel { level }
+        let _ = ansi;
+        #[cfg(feature = "ansi")]
+        FmtLevel {
+            level,
+            #[cfg(feature = "ansi")]
+            ansi,
         }
     }
 }
@@ -272,13 +272,15 @@ impl<'a> FormatSpanFields<'a> {
     pub(crate) fn format_fields(
         span_name: &'static str,
         fields: Option<&'a str>,
-        _ansi: bool,
+        ansi: bool,
     ) -> Self {
+        #[cfg(not(feature = "ansi"))]
+        let _ = ansi;
         Self {
             span_name,
             fields,
             #[cfg(feature = "ansi")]
-            ansi: _ansi,
+            ansi,
         }
     }
 }
