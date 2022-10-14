@@ -93,9 +93,38 @@
 #[deny(rustdoc::broken_intra_doc_links)]
 mod format;
 
+#[cfg(feature = "ansi")]
+mod nu_ansi_term {
+    pub use ::nu_ansi_term::*;
+}
+#[cfg(not(feature = "ansi"))]
+mod nu_ansi_term {
+    // Minimal API shim for nu_ansi_term to avoid a pile of #[cfg(feature = "ansi")] directives.
+    #[derive(Copy, Clone)]
+    pub struct Style;
+
+    impl Style {
+        pub fn new() -> Self {
+            Style
+        }
+        pub fn bold(&self) -> Self {
+            Style
+        }
+        pub fn prefix(&self) -> &'static str {
+            ""
+        }
+        pub fn infix(&self, _: Style) -> &'static str {
+            ""
+        }
+        pub fn suffix(&self) -> &'static str {
+            ""
+        }
+    }
+}
+
+use crate::nu_ansi_term::Style;
 use format::FmtLevel;
 pub use format::{LocalTime, UtcTime};
-use nu_ansi_term::Style;
 use std::fmt;
 use tracing::{
     field::{Field, Visit},
@@ -225,6 +254,7 @@ where
             with_thread_names: self.with_thread_names,
             metadata: event.metadata(),
             with_target: self.with_target,
+            #[cfg(feature = "ansi")]
             ansi: writer.has_ansi_escapes(),
         };
         write!(writer, "{}] ", data)?;
