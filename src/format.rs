@@ -61,7 +61,6 @@ impl FmtLevel {
     pub(crate) fn format_level(level: Level, ansi: bool) -> FmtLevel {
         #[cfg(not(feature = "ansi"))]
         let _ = ansi;
-        #[cfg(feature = "ansi")]
         FmtLevel {
             level,
             #[cfg(feature = "ansi")]
