@@ -130,6 +130,8 @@ use tracing::{
     field::{Field, Visit},
     Subscriber,
 };
+#[cfg(feature = "tracing-log")]
+use tracing_log::NormalizeEvent;
 use tracing_subscriber::{
     field::{MakeVisitor, VisitFmt, VisitOutput},
     fmt::{
@@ -248,11 +250,18 @@ where
         let thread = std::thread::current();
         let thread_name = thread.name();
 
+        #[cfg(feature = "tracing-log")]
+        let normalized_meta = event.normalized_metadata();
+        #[cfg(feature = "tracing-log")]
+        let metadata = normalized_meta.as_ref().unwrap_or_else(|| event.metadata());
+        #[cfg(not(feature = "tracing-log"))]
+        let metadata = event.metadata();
+
         let data = FormatProcessData {
             pid,
             thread_name,
             with_thread_names: self.with_thread_names,
-            metadata: event.metadata(),
+            metadata,
             with_target: self.with_target,
             #[cfg(feature = "ansi")]
             ansi: writer.has_ansi_escapes(),
