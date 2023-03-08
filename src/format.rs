@@ -1,6 +1,6 @@
 #[cfg(feature = "ansi")]
 use crate::nu_ansi_term::{Color, Style};
-use std::{fmt, io};
+use std::{ffi::OsStr, fmt, io, path::Path};
 use time::{format_description::FormatItem, formatting::Formattable, OffsetDateTime};
 use tracing::{Level, Metadata};
 use tracing_subscriber::fmt::{format::Writer, time::FormatTime};
@@ -208,13 +208,28 @@ pub(crate) struct FormatProcessData<'a> {
     pub(crate) with_target: bool,
     #[cfg(feature = "ansi")]
     pub(crate) ansi: bool,
+    pub(crate) with_trimmed_directory: bool,
 }
 
 impl<'a> fmt::Display for FormatProcessData<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let thread_name = self.thread_name;
         let target = self.metadata.target();
-        let file = self.metadata.file().unwrap_or("");
+        let file = self
+            .metadata
+            .file()
+            .map(|f| {
+                if self.with_trimmed_directory {
+                    let path = Path::new(f);
+                    path.file_name()
+                        .map(OsStr::to_str)
+                        .unwrap_or_default()
+                        .unwrap_or_default()
+                } else {
+                    f
+                }
+            })
+            .unwrap_or("");
         let line = match self.metadata.line() {
             Some(line) => format!("{}", line),
             None => String::new(),
