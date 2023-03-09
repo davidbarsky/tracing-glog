@@ -189,7 +189,7 @@ impl<T> Glog<T> {
 
     pub fn with_trimmed_directory(self, with_trimmed_directory: bool) -> Glog<T> {
         Glog {
-            with_trimmed_directory: with_trimmed_directory,
+            with_trimmed_directory,
             ..self
         }
     }
