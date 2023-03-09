@@ -223,8 +223,8 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
                     let path = Path::new(f);
                     path.file_name()
                         .map(OsStr::to_str)
-                        .unwrap_or_default()
-                        .unwrap_or_default()
+                        .unwrap_or(Some(f))
+                        .unwrap_or(f)
                 } else {
                     f
                 }
