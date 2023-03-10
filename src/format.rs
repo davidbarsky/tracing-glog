@@ -209,6 +209,7 @@ pub(crate) struct FormatProcessData<'a> {
     #[cfg(feature = "ansi")]
     pub(crate) ansi: bool,
     pub(crate) with_trimmed_directory: bool,
+    pub(crate) with_strip_prefix: &'a Option<String>,
 }
 
 impl<'a> fmt::Display for FormatProcessData<'a> {
@@ -224,6 +225,11 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
                     path.file_name()
                         .map(OsStr::to_str)
                         .unwrap_or(Some(f))
+                        .unwrap_or(f)
+                } else if let Some(prefix) = &self.with_strip_prefix {
+                    Path::new(f)
+                        .strip_prefix(prefix)
+                        .map(|path| path.to_str().unwrap())
                         .unwrap_or(f)
                 } else {
                     f
