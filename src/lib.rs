@@ -150,6 +150,8 @@ pub struct Glog<T = UtcTime> {
     with_span_context: bool,
     with_thread_names: bool,
     with_target: bool,
+    with_trimmed_directory: bool,
+    with_strip_prefix: Option<String>,
 }
 
 impl<T> Glog<T> {
@@ -168,6 +170,8 @@ impl<T> Glog<T> {
             with_thread_names: self.with_thread_names,
             with_target: self.with_target,
             with_span_context: self.with_span_context,
+            with_trimmed_directory: self.with_trimmed_directory,
+            with_strip_prefix: self.with_strip_prefix,
         }
     }
 
@@ -181,6 +185,20 @@ impl<T> Glog<T> {
     pub fn with_target(self, with_target: bool) -> Glog<T> {
         Glog {
             with_target,
+            ..self
+        }
+    }
+
+    pub fn with_trimmed_directory(self, with_trimmed_directory: bool) -> Glog<T> {
+        Glog {
+            with_trimmed_directory,
+            ..self
+        }
+    }
+
+    pub fn with_strip_prefix<S: ToString>(self, with_strip_prefix: Option<S>) -> Glog<T> {
+        Glog {
+            with_strip_prefix: with_strip_prefix.map(|s|s.to_string()),
             ..self
         }
     }
@@ -220,6 +238,8 @@ impl Default for Glog<UtcTime> {
             with_thread_names: false,
             with_target: false,
             with_span_context: true,
+            with_trimmed_directory: false,
+            with_strip_prefix: None,
         }
     }
 }
@@ -265,6 +285,8 @@ where
             with_target: self.with_target,
             #[cfg(feature = "ansi")]
             ansi: writer.has_ansi_escapes(),
+            with_trimmed_directory: self.with_trimmed_directory,
+            with_strip_prefix: &self.with_strip_prefix,
         };
         write!(writer, "{}] ", data)?;
 
