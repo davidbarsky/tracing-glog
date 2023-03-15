@@ -448,7 +448,7 @@ impl<'a> fmt::Display for ErrorSourceList<'a> {
     }
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
 #[inline(always)]
 fn get_pid() -> u32 {
     std::process::id()
@@ -458,4 +458,10 @@ fn get_pid() -> u32 {
 #[inline(always)]
 fn get_pid() -> i32 {
     unsafe { libc::gettid() }
+}
+
+#[cfg(target_os = "windows")]
+#[inline(always)]
+fn get_pid() -> u32 {
+     unsafe { winapi::um::processthreadsapi::GetCurrentThreadId() }
 }
