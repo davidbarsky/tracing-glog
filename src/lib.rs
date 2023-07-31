@@ -194,12 +194,12 @@ impl<T> Glog<T> {
     /// the complexity of the output's structure.
     ///
     /// # Example when `true`
-    /// ```
+    /// ```no_compile
     /// I0731 16:23:45.674465 990039 examples/tokio.rs:38] [parent_task{subtasks: 10, reason: "testing"}, subtask{number: 10}] polling subtask, number: 10
     /// ```
     ///
     /// # Example when `false`
-    /// ```
+    /// ```no_compile
     /// I0731 16:23:45.674465 990039 examples/tokio.rs:38] [subtasks: 10, reason: "testing", number: 10] polling subtask, number: 10
     /// ```
     pub fn with_span_names(self, with_span_names: bool) -> Glog<T> {
@@ -477,12 +477,10 @@ impl<'a> Visit for GlogVisitor<'a> {
 
         if field.name() == "message" {
             self.record_debug(field, &format_args!("{}", value))
+        } else if self.config.should_quote_strings {
+            self.record_debug(field, &value)
         } else {
-            if self.config.should_quote_strings {
-                self.record_debug(field, &value)
-            } else {
-                self.record_debug(field, &format_args!("{}", value))
-            }
+            self.record_debug(field, &format_args!("{}", value))
         }
     }
 
