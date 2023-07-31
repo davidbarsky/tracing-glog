@@ -265,6 +265,7 @@ pub(crate) struct FormatSpanFields<'a> {
     fields: Option<&'a str>,
     #[cfg(feature = "ansi")]
     pub ansi: bool,
+    print_span_names: bool,
 }
 
 impl<'a> FormatSpanFields<'a> {
@@ -272,6 +273,7 @@ impl<'a> FormatSpanFields<'a> {
         span_name: &'static str,
         fields: Option<&'a str>,
         ansi: bool,
+        print_span_names: bool,
     ) -> Self {
         #[cfg(not(feature = "ansi"))]
         let _ = ansi;
@@ -280,6 +282,7 @@ impl<'a> FormatSpanFields<'a> {
             fields,
             #[cfg(feature = "ansi")]
             ansi,
+            print_span_names,
         }
     }
 }
@@ -289,17 +292,31 @@ impl<'a> fmt::Display for FormatSpanFields<'a> {
         #[cfg(feature = "ansi")]
         if self.ansi {
             let bold = Style::new().bold();
-            write!(f, "{}", bold.paint(self.span_name))?;
+
+            if self.print_span_names {
+                write!(f, "{}", bold.paint(self.span_name))?;
+            }
 
             let italic = Style::new().italic();
             if let Some(fields) = self.fields {
-                write!(f, "{{{}}}", italic.paint(fields))?;
+                if self.print_span_names {
+                    write!(f, "{{{}}}", italic.paint(fields))?;
+                } else {
+                    write!(f, "{}", italic.paint(fields))?;
+                }
             };
             return Ok(());
         }
-        write!(f, "{}", self.span_name)?;
+
+        if self.print_span_names {
+            write!(f, "{}", self.span_name)?;
+        }
         if let Some(fields) = self.fields {
-            write!(f, "{{{}}}", fields)?;
+            if self.print_span_names {
+                write!(f, "{{{}}}", fields)?;
+            } else {
+                write!(f, "{}", fields)?;
+            }
         };
 
         Ok(())

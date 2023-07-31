@@ -3,9 +3,20 @@ use tokio::task::JoinSet;
 use tracing::{debug, info, instrument, span, Instrument as _, Level};
 use tracing_glog::{Glog, GlogFields, UtcTime};
 
+#[instrument(skip_all)]
+async fn no_fields() {
+    info!("Printing from no_fields");
+    sub_no_fields().await;
+}
+
+#[instrument(skip_all)]
+async fn sub_no_fields() {
+    info!("Printing from sub_no_fields");
+}
+
 #[instrument]
-async fn parent_task(subtasks: usize) -> Result<(), Error> {
-    info!("spawning subtasks...");
+async fn parent_task(subtasks: usize, reason: &str) -> Result<(), Error> {
+    info!("spawning subtasks in {reason}...");
     let mut set = JoinSet::new();
 
     for number in 1..=subtasks {
@@ -36,10 +47,12 @@ async fn main() -> Result<(), Error> {
             Glog::default()
                 .with_target(false)
                 .with_thread_names(false)
-                .with_timer(UtcTime::default()),
+                .with_timer(UtcTime::default())
+                .with_span_names(false)
         )
-        .fmt_fields(GlogFields::default())
+        .fmt_fields(GlogFields::default().compact())
         .init();
-    parent_task(10).await?;
+    parent_task(10, "testing").await?;
+    no_fields().await;
     Ok(())
 }
