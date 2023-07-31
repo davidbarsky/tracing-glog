@@ -395,8 +395,7 @@ impl GlogFields {
 
     /// Uses formatting options which favor compactness.
     pub fn compact(self) -> Self {
-        self
-            .should_quote_strings(false)
+        self.should_quote_strings(false)
             .use_whitespace_in_field(false)
     }
 }

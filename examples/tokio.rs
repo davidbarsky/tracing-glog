@@ -48,7 +48,7 @@ async fn main() -> Result<(), Error> {
                 .with_target(false)
                 .with_thread_names(false)
                 .with_timer(UtcTime::default())
-                .with_span_names(false)
+                .with_span_names(false),
         )
         .fmt_fields(GlogFields::default().compact())
         .init();
