@@ -190,18 +190,18 @@ impl<T> Glog<T> {
     /// Sets whether or not the span name is included. Defaults to true.
     ///
     /// If span names are not included, then the fields from all spans are
-    /// printed as a single list of fields.  This compacts the output and reduces
-    /// the complexity of the output's structure.
+    /// printed as a single list of fields. This results is a more compact output.
     ///
-    /// # Example when `true`
-    /// ```no_compile
+    /// # Example Output
+    /// With `with_span_names` set to true:
+    /// <pre>
     /// I0731 16:23:45.674465 990039 examples/tokio.rs:38] [parent_task{subtasks: 10, reason: "testing"}, subtask{number: 10}] polling subtask, number: 10
-    /// ```
+    /// </pre>
     ///
-    /// # Example when `false`
-    /// ```no_compile
+    /// With `with_span_names` set to false:
+    /// <pre>
     /// I0731 16:23:45.674465 990039 examples/tokio.rs:38] [subtasks: 10, reason: "testing", number: 10] polling subtask, number: 10
-    /// ```
+    /// <pre>
     pub fn with_span_names(self, with_span_names: bool) -> Glog<T> {
         Glog {
             with_span_names,
@@ -385,15 +385,18 @@ impl GlogFields {
         self
     }
 
-    /// Sets whether or not whitespace is added to printed fields
+    /// Sets whether or not whitespace is added to printed fields.
     ///
-    /// This is helpful for reducing line width.
+    /// This defaults to `false`.
     pub fn use_whitespace_in_field(mut self, value: bool) -> Self {
         self.config.use_whitespace_in_field = value;
         self
     }
 
-    /// Uses formatting options which favor compactness.
+    /// Sets the formatter to use compact options.
+    ///
+    /// Setting `.compat()` will set [`GlogFields::use_whitespace_in_field`]
+    /// and [`GlogFields::should_quote_strings`] to false.
     pub fn compact(self) -> Self {
         self.should_quote_strings(false)
             .use_whitespace_in_field(false)
