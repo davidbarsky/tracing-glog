@@ -201,7 +201,7 @@ impl<T> Glog<T> {
     /// With `with_span_names` set to false:
     /// <pre>
     /// I0731 16:23:45.674465 990039 examples/tokio.rs:38] [subtasks: 10, reason: "testing", number: 10] polling subtask, number: 10
-    /// <pre>
+    /// </pre>
     pub fn with_span_names(self, with_span_names: bool) -> Glog<T> {
         Glog {
             with_span_names,
