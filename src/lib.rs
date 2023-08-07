@@ -150,6 +150,7 @@ pub struct Glog<T = UtcTime> {
     with_span_context: bool,
     with_thread_names: bool,
     with_target: bool,
+    with_span_names: bool,
 }
 
 impl<T> Glog<T> {
@@ -168,6 +169,7 @@ impl<T> Glog<T> {
             with_thread_names: self.with_thread_names,
             with_target: self.with_target,
             with_span_context: self.with_span_context,
+            with_span_names: self.with_span_names,
         }
     }
 
@@ -181,6 +183,28 @@ impl<T> Glog<T> {
     pub fn with_target(self, with_target: bool) -> Glog<T> {
         Glog {
             with_target,
+            ..self
+        }
+    }
+
+    /// Sets whether or not the span name is included. Defaults to true.
+    ///
+    /// If span names are not included, then the fields from all spans are
+    /// printed as a single list of fields. This results is a more compact output.
+    ///
+    /// # Example Output
+    /// With `with_span_names` set to true:
+    /// <pre>
+    /// I0731 16:23:45.674465 990039 examples/tokio.rs:38] [parent_task{subtasks: 10, reason: "testing"}, subtask{number: 10}] polling subtask, number: 10
+    /// </pre>
+    ///
+    /// With `with_span_names` set to false:
+    /// <pre>
+    /// I0731 16:23:45.674465 990039 examples/tokio.rs:38] [subtasks: 10, reason: "testing", number: 10] polling subtask, number: 10
+    /// </pre>
+    pub fn with_span_names(self, with_span_names: bool) -> Glog<T> {
+        Glog {
+            with_span_names,
             ..self
         }
     }
@@ -220,6 +244,7 @@ impl Default for Glog<UtcTime> {
             with_thread_names: false,
             with_target: false,
             with_span_context: true,
+            with_span_names: true,
         }
     }
 }
@@ -273,8 +298,7 @@ where
             let leaf = ctx.lookup_current();
 
             if let Some(leaf) = leaf {
-                // write the opening brackets
-                write!(writer, "[")?;
+                let mut wrote_open_bracket = false;
 
                 // Write spans and fields of each span
                 let mut iter = leaf.scope().from_root();
@@ -293,25 +317,37 @@ where
                         None
                     };
 
-                    let fields = FormatSpanFields::format_fields(
-                        span.name(),
-                        fields,
-                        writer.has_ansi_escapes(),
-                    );
-                    write!(writer, "{}", fields)?;
+                    if self.with_span_names || fields.is_some() {
+                        if !wrote_open_bracket {
+                            // Write the opening bracket once we know we need one
+                            write!(writer, "[")?;
+                            wrote_open_bracket = true;
+                        }
+                        let fields = FormatSpanFields::format_fields(
+                            span.name(),
+                            fields,
+                            writer.has_ansi_escapes(),
+                            self.with_span_names,
+                        );
+                        write!(writer, "{}", fields)?;
+                    }
 
                     drop(ext);
                     match iter.next() {
                         // if there's more, add a space.
                         Some(next) => {
-                            write!(writer, ", ")?;
+                            if wrote_open_bracket {
+                                write!(writer, ", ")?;
+                            }
                             span = next;
                         }
                         // if there's nothing there, close.
                         None => break,
                     }
                 }
-                write!(writer, "] ")?;
+                if wrote_open_bracket {
+                    write!(writer, "] ")?;
+                }
             }
         }
         ctx.field_format().format_fields(writer.by_ref(), event)?;
@@ -319,15 +355,60 @@ where
     }
 }
 
+#[derive(Clone)]
+struct FieldConfig {
+    should_quote_strings: bool,
+    use_whitespace_in_field: bool,
+}
+
+impl Default for FieldConfig {
+    fn default() -> Self {
+        Self {
+            should_quote_strings: true,
+            use_whitespace_in_field: true,
+        }
+    }
+}
+
 #[derive(Default)]
-pub struct GlogFields;
+pub struct GlogFields {
+    config: FieldConfig,
+}
+
+impl GlogFields {
+    /// Sets whether or not strings are wrapped in quotes.
+    ///
+    /// This is helpful for reducing line width at the cost of clarity when
+    /// using strings with whitespace as fields on Spans and Events.
+    pub fn should_quote_strings(mut self, value: bool) -> Self {
+        self.config.should_quote_strings = value;
+        self
+    }
+
+    /// Sets whether or not whitespace is added to printed fields.
+    ///
+    /// This defaults to `false`.
+    pub fn use_whitespace_in_field(mut self, value: bool) -> Self {
+        self.config.use_whitespace_in_field = value;
+        self
+    }
+
+    /// Sets the formatter to use compact options.
+    ///
+    /// Setting `.compat()` will set [`GlogFields::use_whitespace_in_field`]
+    /// and [`GlogFields::should_quote_strings`] to false.
+    pub fn compact(self) -> Self {
+        self.should_quote_strings(false)
+            .use_whitespace_in_field(false)
+    }
+}
 
 impl<'a> MakeVisitor<Writer<'a>> for GlogFields {
     type Visitor = GlogVisitor<'a>;
 
     #[inline]
     fn make_visitor(&self, target: Writer<'a>) -> Self::Visitor {
-        GlogVisitor::new(target)
+        GlogVisitor::new(target, self.config.clone())
     }
 }
 
@@ -337,15 +418,17 @@ pub struct GlogVisitor<'a> {
     is_empty: bool,
     style: Style,
     result: fmt::Result,
+    config: FieldConfig,
 }
 
 impl<'a> GlogVisitor<'a> {
-    fn new(writer: Writer<'a>) -> Self {
+    fn new(writer: Writer<'a>, config: FieldConfig) -> Self {
         Self {
             writer,
             is_empty: true,
             style: Style::new(),
             result: Ok(()),
+            config,
         }
     }
 
@@ -357,6 +440,27 @@ impl<'a> GlogVisitor<'a> {
             ", "
         };
         self.result = write!(self.writer, "{}{:?}", padding, value);
+    }
+
+    fn write_field(&mut self, name: &str, value: &dyn fmt::Debug) {
+        let bold = self.bold();
+        if self.config.use_whitespace_in_field {
+            self.write_padded(&format_args!(
+                "{}{}{}: {:?}",
+                bold.prefix(),
+                name,
+                bold.infix(self.style),
+                value,
+            ));
+        } else {
+            self.write_padded(&format_args!(
+                "{}{}{}:{:?}",
+                bold.prefix(),
+                name,
+                bold.infix(self.style),
+                value,
+            ));
+        }
     }
 
     fn bold(&self) -> Style {
@@ -376,8 +480,10 @@ impl<'a> Visit for GlogVisitor<'a> {
 
         if field.name() == "message" {
             self.record_debug(field, &format_args!("{}", value))
-        } else {
+        } else if self.config.should_quote_strings {
             self.record_debug(field, &value)
+        } else {
+            self.record_debug(field, &format_args!("{}", value))
         }
     }
 
@@ -397,25 +503,12 @@ impl<'a> Visit for GlogVisitor<'a> {
             return;
         }
 
-        let bold = self.bold();
         match field.name() {
             "message" => self.write_padded(&format_args!("{}{:?}", self.style.prefix(), value,)),
             // Skip fields that are actually log metadata that have already been handled
             name if name.starts_with("log.") => self.result = Ok(()),
-            name if name.starts_with("r#") => self.write_padded(&format_args!(
-                "{}{}{}: {:?}",
-                bold.prefix(),
-                &name[2..],
-                bold.infix(self.style),
-                value
-            )),
-            name => self.write_padded(&format_args!(
-                "{}{}{}: {:?}",
-                bold.prefix(),
-                name,
-                bold.infix(self.style),
-                value
-            )),
+            name if name.starts_with("r#") => self.write_field(&name[2..], value),
+            name => self.write_field(name, value),
         };
     }
 }
