@@ -1,7 +1,7 @@
 use anyhow::Error;
 use tokio::task::JoinSet;
 use tracing::{debug, info, instrument, span, Instrument as _, Level};
-use tracing_glog::{Glog, GlogFields, UtcTime};
+use tracing_glog::{ChronoLocalTime, Glog, GlogFields};
 
 #[instrument]
 async fn parent_task(subtasks: usize) -> Result<(), Error> {
@@ -36,7 +36,7 @@ async fn main() -> Result<(), Error> {
             Glog::default()
                 .with_target(false)
                 .with_thread_names(false)
-                .with_timer(UtcTime::default()),
+                .with_timer(ChronoLocalTime::default()),
         )
         .fmt_fields(GlogFields::default())
         .init();

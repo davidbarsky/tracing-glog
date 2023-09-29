@@ -124,6 +124,8 @@ mod nu_ansi_term {
 
 use crate::nu_ansi_term::Style;
 use format::FmtLevel;
+#[cfg(feature = "chrono")]
+pub use format::{ChronoLocalTime, ChronoUtcTime};
 pub use format::{LocalTime, UtcTime};
 use std::fmt;
 use tracing::{

@@ -5,6 +5,9 @@ use time::{format_description::FormatItem, formatting::Formattable, OffsetDateTi
 use tracing::{Level, Metadata};
 use tracing_subscriber::fmt::{format::Writer, time::FormatTime};
 
+#[cfg(feature = "chrono")]
+use tracing_subscriber::fmt::time::{ChronoLocal, ChronoUtc};
+
 /// A bridge between `fmt::Write` and `io::Write`.
 ///
 /// This is used by the timestamp formatting implementation for the `time`
@@ -134,6 +137,37 @@ impl Default for UtcTime {
     }
 }
 
+#[cfg(feature = "chrono")]
+pub struct ChronoUtcTime {
+    time: ChronoUtc,
+}
+
+#[cfg(feature = "chrono")]
+impl FormatTime for ChronoUtcTime {
+    fn format_time(&self, w: &mut Writer<'_>) -> fmt::Result {
+        #[cfg(feature = "ansi")]
+        if w.has_ansi_escapes() {
+            let style = Style::new().dimmed();
+            write!(w, "{}", style.prefix())?;
+            self.time.format_time(w)?;
+            write!(w, "{}", style.suffix())?;
+            return Ok(());
+        }
+
+        self.time.format_time(w)
+    }
+}
+
+#[cfg(feature = "chrono")]
+impl Default for ChronoUtcTime {
+    fn default() -> Self {
+        let fmt_string = String::from("%m%d %H:%M:%S%.6f");
+        Self {
+            time: ChronoUtc::new(fmt_string),
+        }
+    }
+}
+
 /// Formats the current [local time] using a [formatter] from the [`time` crate].
 ///
 /// To format the current [UTC time] instead, use the [`UtcTime`] type.
@@ -186,6 +220,36 @@ where
         }
 
         format_datetime(writer, now, &self.format)
+    }
+}
+
+#[cfg(feature = "chrono")]
+pub struct ChronoLocalTime {
+    time: ChronoLocal,
+}
+
+#[cfg(feature = "chrono")]
+impl FormatTime for ChronoLocalTime {
+    fn format_time(&self, w: &mut Writer<'_>) -> fmt::Result {
+        #[cfg(feature = "ansi")]
+        if w.has_ansi_escapes() {
+            let style = Style::new().dimmed();
+            write!(w, "{}", style.prefix())?;
+            self.time.format_time(w)?;
+            write!(w, "{}", style.suffix())?;
+            return Ok(());
+        }
+
+        self.time.format_time(w)
+    }
+}
+
+impl Default for ChronoLocalTime {
+    fn default() -> Self {
+        let fmt_string = String::from("%m%d %H:%M:%S%.6f");
+        Self {
+            time: ChronoLocal::new(fmt_string),
+        }
     }
 }
 

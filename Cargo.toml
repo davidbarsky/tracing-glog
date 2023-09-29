@@ -11,8 +11,9 @@ documentation = "https://docs.rs/tracing-glog"
 
 [dependencies]
 tracing = { version = "0.1", default-features = false }
-tracing-subscriber = { version = "0.3.3", features = ["std", "fmt", "registry", "time", "local-time"], default-features = false }
+tracing-subscriber = { version = "0.3.3", features = ["std", "fmt", "registry", "time", "local-time", "chrono"], default-features = false }
 time = { version = "0.3.9", features = ["formatting"] }
+chrono = { version = "0.4.20", optional = true }
 nu-ansi-term = { version = "0.46", optional = true }
 tracing-log = { version = "0.1", optional = true }
 
@@ -27,7 +28,16 @@ tokio = { version = "1.21", features = ["full"] }
 default = ["ansi"]
 ansi = ["nu-ansi-term", "tracing-subscriber/ansi"]
 tracing-log = ["dep:tracing-log"]
+chrono = ["dep:chrono", "tracing-subscriber/chrono"]
+
+[[example]]
+name = "tokio"
+required-features = ["chrono", "ansi"]
 
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+[patch.crates-io]
+tracing = { git = 'https://github.com/tokio-rs/tracing.git', branch = "davidbarsky/backport-changes" }
+tracing-subscriber = { git = 'https://github.com/tokio-rs/tracing.git', branch = "davidbarsky/backport-changes" }
