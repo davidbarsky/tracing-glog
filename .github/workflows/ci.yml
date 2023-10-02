@@ -76,4 +76,6 @@ jobs:
           override: true
       - name: install cargo-hack
         uses: taiki-e/install-action@cargo-hack
-        run: cargo hack check --feature-powerset --no-dev-deps
+      - with:
+          command: cargo
+          args: hack check --feature-powerset --no-dev-deps
