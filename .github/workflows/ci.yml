@@ -7,8 +7,8 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
           profile: minimal
           toolchain: stable
@@ -21,8 +21,8 @@ jobs:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
           profile: minimal
           toolchain: stable
@@ -35,8 +35,8 @@ jobs:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
           profile: minimal
           toolchain: stable
@@ -51,8 +51,8 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
           profile: minimal
           toolchain: stable
@@ -62,3 +62,18 @@ jobs:
         with:
           command: clippy
           args: -- -D warnings
+
+  cargo-hack:
+    needs: check
+    name: cargo check (feature combinations)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: install cargo-hack
+        uses: taiki-e/install-action@cargo-hack
+        run: cargo hack check --feature-powerset --no-dev-deps
