@@ -39,5 +39,6 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [patch.crates-io]
-tracing = { git = 'https://github.com/tokio-rs/tracing.git', branch = "davidbarsky/backport-changes" }
-tracing-subscriber = { git = 'https://github.com/tokio-rs/tracing.git', branch = "davidbarsky/backport-changes" }
+tracing = { git = 'https://github.com/tokio-rs/tracing.git', branch = "v0.1.x" }
+tracing-subscriber = { git = 'https://github.com/tokio-rs/tracing.git', branch = "v0.1.x" }
+tracing-log = { git = 'https://github.com/tokio-rs/tracing.git', branch = "v0.1.x" }

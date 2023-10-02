@@ -244,6 +244,7 @@ impl FormatTime for ChronoLocalTime {
     }
 }
 
+#[cfg(feature = "chrono")]
 impl Default for ChronoLocalTime {
     fn default() -> Self {
         let fmt_string = String::from("%m%d %H:%M:%S%.6f");
