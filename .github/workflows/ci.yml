@@ -74,8 +74,7 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - name: install cargo-hack
-        uses: taiki-e/install-action@cargo-hack
-      - with:
+      - uses: taiki-e/install-action@cargo-hack
+        with:
           command: cargo
           args: hack check --feature-powerset --no-dev-deps
