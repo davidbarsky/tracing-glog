@@ -137,7 +137,15 @@ impl Default for UtcTime {
     }
 }
 
+/// Formats the current [UTC time] using [`chrono` crate].
+///
+/// To format the current local time instead, use the [`ChronoLocalTime`]
+/// or the [`LocalTime`] type.
+///
+/// [UTC time]: ChronoUtc
+/// [`chrono` crate]: chrono
 #[cfg(feature = "chrono")]
+#[derive(Clone, Debug)]
 pub struct ChronoUtcTime {
     time: ChronoUtc,
 }
@@ -223,6 +231,13 @@ where
     }
 }
 
+/// Formats the current [`local time`] using [`chrono` crate].
+///
+/// To format the UTC time instead, use the [`ChronoUtcTime`]
+/// or the [`UtcTime`] type.
+///
+/// [`local time`]: ChronoLocal
+/// [`chrono` crate]: chrono
 #[cfg(feature = "chrono")]
 pub struct ChronoLocalTime {
     time: ChronoLocal,
