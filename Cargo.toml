@@ -1,6 +1,6 @@
 [package]
 name = "tracing-glog"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 description = "a glog-inspired formatter for tracing-subscriber"
 license = "MIT OR Apache-2.0"
@@ -11,11 +11,11 @@ documentation = "https://docs.rs/tracing-glog"
 
 [dependencies]
 tracing = { version = "0.1", default-features = false }
-tracing-subscriber = { version = "0.3.18", features = ["std", "fmt", "registry", "time", "local-time"], default-features = false }
-time = { version = "0.3.9", features = ["formatting"] }
-chrono = { version = "0.4.20", optional = true }
+tracing-subscriber = { version = "0.3.18", features = ["std", "fmt", "registry", "chrono"], default-features = false }
+chrono = { version = "0.4.20" }
+time = { version = "0.3.9", features = ["formatting"], default-features = false, optional = true }
 nu-ansi-term = { version = "0.46", optional = true }
-tracing-log = { version = "0.2", optional = true }
+tracing-log = { version = "0.2", default-features = false, optional = true }
 
 [dev-dependencies]
 thiserror = "1"
@@ -28,11 +28,12 @@ tokio = { version = "1.21", features = ["full"] }
 default = ["ansi"]
 ansi = ["nu-ansi-term", "tracing-subscriber/ansi"]
 tracing-log = ["dep:tracing-log"]
-chrono = ["dep:chrono", "tracing-subscriber/chrono"]
+time = ["dep:time", "tracing-subscriber/time"]
+local-time = ["dep:time", "tracing-subscriber/local-time"]
 
 [[example]]
 name = "tokio"
-required-features = ["chrono", "ansi"]
+required-features = ["ansi"]
 
 [package.metadata.docs.rs]
 all-features = true
