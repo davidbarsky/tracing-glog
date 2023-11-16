@@ -1,7 +1,7 @@
 use anyhow::Error;
 use tokio::task::JoinSet;
 use tracing::{debug, info, instrument, span, Instrument as _, Level};
-use tracing_glog::{ChronoLocalTime, Glog, GlogFields};
+use tracing_glog::{Glog, GlogFields, LocalTime};
 
 #[instrument(skip_all)]
 async fn no_fields() {
@@ -47,7 +47,7 @@ async fn main() -> Result<(), Error> {
             Glog::default()
                 .with_target(false)
                 .with_thread_names(false)
-                .with_timer(ChronoLocalTime::default())
+                .with_timer(LocalTime::default())
                 .with_span_names(false),
         )
         .fmt_fields(GlogFields::default().compact())

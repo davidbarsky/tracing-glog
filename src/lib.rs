@@ -128,7 +128,7 @@ mod nu_ansi_term {
 
 use crate::nu_ansi_term::Style;
 use format::FmtLevel;
-pub use format::{ChronoLocalTime, ChronoUtcTime};
+pub use format::{LocalTime, UtcTime};
 use std::fmt;
 use tracing::{
     field::{Field, Visit},
@@ -149,7 +149,7 @@ use crate::format::{FormatProcessData, FormatSpanFields};
 /// A [glog]-inspired span and event formatter.
 ///
 /// [glog]: https://github.com/google/glog
-pub struct Glog<T = ChronoUtcTime> {
+pub struct Glog<T = UtcTime> {
     timer: T,
     with_span_context: bool,
     with_thread_names: bool,
@@ -241,10 +241,10 @@ impl<T> Glog<T> {
     }
 }
 
-impl Default for Glog<ChronoUtcTime> {
+impl Default for Glog<UtcTime> {
     fn default() -> Self {
         Glog {
-            timer: ChronoUtcTime::default(),
+            timer: UtcTime::default(),
             with_thread_names: false,
             with_target: false,
             with_span_context: true,

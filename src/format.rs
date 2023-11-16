@@ -54,17 +54,17 @@ impl fmt::Display for FmtLevel {
 
 /// Formats the current [UTC time] using [`chrono` crate].
 ///
-/// To format the current local time instead, use the [`ChronoLocalTime`]
+/// To format the current local time instead, use the [`LocalTime`]
 /// or the [`LocalTime`] type.
 ///
 /// [UTC time]: ChronoUtc
 /// [`chrono` crate]: chrono
 #[derive(Clone, Debug)]
-pub struct ChronoUtcTime {
+pub struct UtcTime {
     time: ChronoUtc,
 }
 
-impl FormatTime for ChronoUtcTime {
+impl FormatTime for UtcTime {
     fn format_time(&self, w: &mut Writer<'_>) -> fmt::Result {
         #[cfg(feature = "ansi")]
         if w.has_ansi_escapes() {
@@ -79,7 +79,7 @@ impl FormatTime for ChronoUtcTime {
     }
 }
 
-impl Default for ChronoUtcTime {
+impl Default for UtcTime {
     fn default() -> Self {
         let fmt_string = String::from("%m%d %H:%M:%S%.6f");
         Self {
@@ -90,16 +90,16 @@ impl Default for ChronoUtcTime {
 
 /// Formats the current [`local time`] using [`chrono` crate].
 ///
-/// To format the UTC time instead, use the [`ChronoUtcTime`]
-/// or the [`UtcTime`] type.
+/// To format the UTC time instead, use the [`UtcTime`]
+/// or the [`crate::time_crate::UtcTime`] type.
 ///
-/// [`local time`]: ChronoLocal
+/// [`local time`]: tracing_subscriber::fmt::time::ChronoLocal
 /// [`chrono` crate]: chrono
-pub struct ChronoLocalTime {
+pub struct LocalTime {
     time: ChronoLocal,
 }
 
-impl FormatTime for ChronoLocalTime {
+impl FormatTime for LocalTime {
     fn format_time(&self, w: &mut Writer<'_>) -> fmt::Result {
         #[cfg(feature = "ansi")]
         if w.has_ansi_escapes() {
@@ -114,7 +114,7 @@ impl FormatTime for ChronoLocalTime {
     }
 }
 
-impl Default for ChronoLocalTime {
+impl Default for LocalTime {
     fn default() -> Self {
         let fmt_string = String::from("%m%d %H:%M:%S%.6f");
         Self {
