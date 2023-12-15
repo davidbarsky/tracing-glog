@@ -93,10 +93,14 @@
 #[deny(rustdoc::broken_intra_doc_links)]
 mod format;
 
+#[cfg(feature = "time")]
+pub mod time_crate;
+
 #[cfg(feature = "ansi")]
 mod nu_ansi_term {
     pub use ::nu_ansi_term::*;
 }
+
 #[cfg(not(feature = "ansi"))]
 mod nu_ansi_term {
     // Minimal API shim for nu_ansi_term to avoid a pile of #[cfg(feature = "ansi")] directives.
