@@ -128,7 +128,7 @@ mod nu_ansi_term {
 
 use crate::nu_ansi_term::Style;
 use format::FmtLevel;
-pub use format::{LocalTime, UtcTime};
+pub use format::{FormatLevelChars, LocalTime, UtcTime};
 use std::fmt;
 use tracing::{
     field::{Field, Visit},
@@ -151,6 +151,7 @@ use crate::format::{FormatProcessData, FormatSpanFields};
 /// [glog]: https://github.com/google/glog
 pub struct Glog<T = UtcTime> {
     timer: T,
+    level_chars: &'static FormatLevelChars,
     with_span_context: bool,
     with_thread_names: bool,
     with_target: bool,
@@ -170,6 +171,7 @@ impl<T> Glog<T> {
     {
         Glog {
             timer,
+            level_chars: self.level_chars,
             with_thread_names: self.with_thread_names,
             with_target: self.with_target,
             with_span_context: self.with_span_context,
@@ -239,12 +241,22 @@ impl<T> Glog<T> {
             ..self
         }
     }
+
+    /// Sets the characters to use to indicate the level for each event.
+    /// Defaults to the initial character of the level.
+    pub fn with_format_level_chars(self, level_chars: &'static FormatLevelChars) -> Glog<T> {
+        Glog {
+            level_chars,
+            ..self
+        }
+    }
 }
 
 impl Default for Glog<UtcTime> {
     fn default() -> Self {
         Glog {
             timer: UtcTime::default(),
+            level_chars: &format::DEFAULT_FORMAT_LEVEL_CHARS,
             with_thread_names: false,
             with_target: false,
             with_span_context: true,
@@ -268,7 +280,7 @@ where
         let level = *event.metadata().level();
 
         // Convert log level to a single character representation.)
-        let level = FmtLevel::format_level(level, writer.has_ansi_escapes());
+        let level = FmtLevel::format_level(level, self.level_chars, writer.has_ansi_escapes());
         write!(writer, "{}", level)?;
 
         // write the timestamp:
