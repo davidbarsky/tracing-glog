@@ -6,24 +6,52 @@ use tracing_subscriber::fmt::{format::Writer, time::FormatTime};
 
 use tracing_subscriber::fmt::time::{ChronoLocal, ChronoUtc};
 
+pub struct FormatLevelChars {
+    pub trace: &'static str,
+    pub debug: &'static str,
+    pub info: &'static str,
+    pub warn: &'static str,
+    pub error: &'static str,
+}
+
+impl FormatLevelChars {
+    pub const fn const_default() -> FormatLevelChars {
+        FormatLevelChars {
+            trace: "T",
+            debug: "D",
+            info: "I",
+            warn: "W",
+            error: "E",
+        }
+    }
+}
+
+impl Default for FormatLevelChars {
+    fn default() -> FormatLevelChars {
+        FormatLevelChars::const_default()
+    }
+}
+
+pub(crate) const DEFAULT_FORMAT_LEVEL_CHARS: FormatLevelChars = FormatLevelChars::const_default();
+
 pub(crate) struct FmtLevel {
     pub level: Level,
+    pub chars: &'static FormatLevelChars,
     #[cfg(feature = "ansi")]
     pub ansi: bool,
 }
 
 impl FmtLevel {
-    const TRACE_STR: &'static str = "T";
-    const DEBUG_STR: &'static str = "D";
-    const INFO_STR: &'static str = "I";
-    const WARN_STR: &'static str = "W";
-    const ERROR_STR: &'static str = "E";
-
-    pub(crate) fn format_level(level: Level, ansi: bool) -> FmtLevel {
+    pub(crate) fn format_level(
+        level: Level,
+        chars: &'static FormatLevelChars,
+        ansi: bool,
+    ) -> FmtLevel {
         #[cfg(not(feature = "ansi"))]
         let _ = ansi;
         FmtLevel {
             level,
+            chars,
             #[cfg(feature = "ansi")]
             ansi,
         }
@@ -32,22 +60,23 @@ impl FmtLevel {
 
 impl fmt::Display for FmtLevel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let chars = self.chars;
         #[cfg(feature = "ansi")]
         if self.ansi {
             return match self.level {
-                Level::TRACE => write!(f, "{}", Color::Purple.paint(Self::TRACE_STR)),
-                Level::DEBUG => write!(f, "{}", Color::Blue.paint(Self::DEBUG_STR)),
-                Level::INFO => write!(f, "{}", Color::Green.paint(Self::INFO_STR)),
-                Level::WARN => write!(f, "{}", Color::Yellow.paint(Self::WARN_STR)),
-                Level::ERROR => write!(f, "{}", Color::Red.paint(Self::ERROR_STR)),
+                Level::TRACE => write!(f, "{}", Color::Purple.paint(chars.trace)),
+                Level::DEBUG => write!(f, "{}", Color::Blue.paint(chars.debug)),
+                Level::INFO => write!(f, "{}", Color::Green.paint(chars.info)),
+                Level::WARN => write!(f, "{}", Color::Yellow.paint(chars.warn)),
+                Level::ERROR => write!(f, "{}", Color::Red.paint(chars.error)),
             };
         }
         match self.level {
-            Level::TRACE => f.pad(Self::TRACE_STR),
-            Level::DEBUG => f.pad(Self::DEBUG_STR),
-            Level::INFO => f.pad(Self::INFO_STR),
-            Level::WARN => f.pad(Self::WARN_STR),
-            Level::ERROR => f.pad(Self::ERROR_STR),
+            Level::TRACE => f.pad(chars.trace),
+            Level::DEBUG => f.pad(chars.debug),
+            Level::INFO => f.pad(chars.info),
+            Level::WARN => f.pad(chars.warn),
+            Level::ERROR => f.pad(chars.error),
         }
     }
 }
@@ -139,7 +168,7 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
         let target = self.metadata.target();
         let file = self.metadata.file().unwrap_or("");
         let line = match self.metadata.line() {
-            Some(line) => format!("{}", line),
+            Some(line) => format!("{line}"),
             None => String::new(),
         };
         // write the always unstyled PID
@@ -152,15 +181,15 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
             write!(f, "{}", style.prefix())?;
             if let Some(name) = thread_name {
                 if self.with_thread_names {
-                    write!(f, " {}", name)?
+                    write!(f, " {name}")?
                 }
             }
 
             if self.with_target {
-                write!(f, " [{}]", target)?;
+                write!(f, " [{target}]")?;
             }
 
-            write!(f, " {file}:{line}", file = file, line = line)?;
+            write!(f, " {file}:{line}")?;
 
             // end bolding
             write!(f, "{}", style.suffix())?;
@@ -169,15 +198,15 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
         }
         if let Some(name) = thread_name {
             if self.with_thread_names {
-                write!(f, " {}", name)?
+                write!(f, " {name}")?
             }
         }
 
         if self.with_target {
-            write!(f, " [{}]", target)?;
+            write!(f, " [{target}]")?;
         }
 
-        write!(f, " {file}:{line}", file = file, line = line)?;
+        write!(f, " {file}:{line}")?;
         Ok(())
     }
 }
@@ -236,9 +265,9 @@ impl<'a> fmt::Display for FormatSpanFields<'a> {
         }
         if let Some(fields) = self.fields {
             if self.print_span_names {
-                write!(f, "{{{}}}", fields)?;
+                write!(f, "{{{fields}}}")?;
             } else {
-                write!(f, "{}", fields)?;
+                write!(f, "{fields}")?;
             }
         };
 
