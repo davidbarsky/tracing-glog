@@ -281,7 +281,7 @@ where
 
         // Convert log level to a single character representation.)
         let level = FmtLevel::format_level(level, self.level_chars, writer.has_ansi_escapes());
-        write!(writer, "{}", level)?;
+        write!(writer, "{level}")?;
 
         // write the timestamp:
         self.timer.format_time(&mut writer)?;
@@ -307,7 +307,7 @@ where
             #[cfg(feature = "ansi")]
             ansi: writer.has_ansi_escapes(),
         };
-        write!(writer, "{}] ", data)?;
+        write!(writer, "{data}] ")?;
 
         if self.with_span_context {
             // now, we're printing the span context into brackets of `[]`, which glog parsers ignore.
@@ -345,7 +345,7 @@ where
                             writer.has_ansi_escapes(),
                             self.with_span_names,
                         );
-                        write!(writer, "{}", fields)?;
+                        write!(writer, "{fields}")?;
                     }
 
                     drop(ext);
@@ -455,7 +455,7 @@ impl<'a> GlogVisitor<'a> {
         } else {
             ", "
         };
-        self.result = write!(self.writer, "{}{:?}", padding, value);
+        self.result = write!(self.writer, "{padding}{value:?}");
     }
 
     fn write_field(&mut self, name: &str, value: &dyn fmt::Debug) {
@@ -495,11 +495,11 @@ impl<'a> Visit for GlogVisitor<'a> {
         }
 
         if field.name() == "message" {
-            self.record_debug(field, &format_args!("{}", value))
+            self.record_debug(field, &format_args!("{value}"))
         } else if self.config.should_quote_strings {
             self.record_debug(field, &value)
         } else {
-            self.record_debug(field, &format_args!("{}", value))
+            self.record_debug(field, &format_args!("{value}"))
         }
     }
 
@@ -510,7 +510,7 @@ impl<'a> Visit for GlogVisitor<'a> {
                 &format_args!("{}, {}.sources: {}", value, field, ErrorSourceList(source),),
             )
         } else {
-            self.record_debug(field, &format_args!("{}", value))
+            self.record_debug(field, &format_args!("{value}"))
         }
     }
 
@@ -550,7 +550,7 @@ impl<'a> fmt::Display for ErrorSourceList<'a> {
         let mut list = f.debug_list();
         let mut curr = Some(self.0);
         while let Some(curr_err) = curr {
-            list.entry(&format_args!("{}", curr_err));
+            list.entry(&format_args!("{curr_err}"));
             curr = curr_err.source();
         }
         list.finish()

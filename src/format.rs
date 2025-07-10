@@ -168,7 +168,7 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
         let target = self.metadata.target();
         let file = self.metadata.file().unwrap_or("");
         let line = match self.metadata.line() {
-            Some(line) => format!("{}", line),
+            Some(line) => format!("{line}"),
             None => String::new(),
         };
         // write the always unstyled PID
@@ -181,15 +181,15 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
             write!(f, "{}", style.prefix())?;
             if let Some(name) = thread_name {
                 if self.with_thread_names {
-                    write!(f, " {}", name)?
+                    write!(f, " {name}")?
                 }
             }
 
             if self.with_target {
-                write!(f, " [{}]", target)?;
+                write!(f, " [{target}]")?;
             }
 
-            write!(f, " {file}:{line}", file = file, line = line)?;
+            write!(f, " {file}:{line}")?;
 
             // end bolding
             write!(f, "{}", style.suffix())?;
@@ -198,15 +198,15 @@ impl<'a> fmt::Display for FormatProcessData<'a> {
         }
         if let Some(name) = thread_name {
             if self.with_thread_names {
-                write!(f, " {}", name)?
+                write!(f, " {name}")?
             }
         }
 
         if self.with_target {
-            write!(f, " [{}]", target)?;
+            write!(f, " [{target}]")?;
         }
 
-        write!(f, " {file}:{line}", file = file, line = line)?;
+        write!(f, " {file}:{line}")?;
         Ok(())
     }
 }
@@ -265,9 +265,9 @@ impl<'a> fmt::Display for FormatSpanFields<'a> {
         }
         if let Some(fields) = self.fields {
             if self.print_span_names {
-                write!(f, "{{{}}}", fields)?;
+                write!(f, "{{{fields}}}")?;
             } else {
-                write!(f, "{}", fields)?;
+                write!(f, "{fields}")?;
             }
         };
 
