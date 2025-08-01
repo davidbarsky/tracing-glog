@@ -299,7 +299,7 @@ where
         let metadata = event.metadata();
 
         let data = FormatProcessData {
-            pid,
+            pid: pid.into(),
             thread_name,
             with_thread_names: self.with_thread_names,
             metadata,
@@ -557,7 +557,20 @@ impl<'a> fmt::Display for ErrorSourceList<'a> {
     }
 }
 
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
 #[inline(always)]
 fn get_pid() -> u32 {
     std::process::id()
+}
+
+#[cfg(target_os = "linux")]
+#[inline(always)]
+fn get_pid() -> i32 {
+    unsafe { libc::gettid() }
+}
+
+#[cfg(target_os = "windows")]
+#[inline(always)]
+fn get_pid() -> u32 {
+     unsafe { winapi::um::processthreadsapi::GetCurrentThreadId() }
 }

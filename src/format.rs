@@ -153,7 +153,7 @@ impl Default for LocalTime {
 }
 
 pub(crate) struct FormatProcessData<'a> {
-    pub(crate) pid: u32,
+    pub(crate) pid: i64,
     pub(crate) thread_name: Option<&'a str>,
     pub(crate) with_thread_names: bool,
     pub(crate) metadata: &'a Metadata<'a>,
