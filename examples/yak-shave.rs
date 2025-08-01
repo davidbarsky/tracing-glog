@@ -1,4 +1,4 @@
-use structopt::StructOpt;
+use clap::Parser;
 use thiserror::Error;
 use tracing::{debug, error, info, span, trace, warn, Level};
 use tracing_glog::{Glog, GlogFields};
@@ -13,19 +13,19 @@ use tracing_glog::{Glog, GlogFields};
 /// cargo run --example yak-shave
 /// ```
 
-#[derive(Debug, structopt::StructOpt)]
+#[derive(Debug, Parser)]
 struct Args {
     /// Whether to run this example with or without ANSI colors.
-    #[structopt(long)]
+    #[clap(long)]
     with_ansi: bool,
 
     /// Whether tracing-glog should include the span context.
-    #[structopt(long)]
+    #[clap(long)]
     with_span_context: bool,
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
 
     tracing_subscriber::fmt()
         .with_ansi(args.with_ansi)
